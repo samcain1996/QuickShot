@@ -109,9 +109,13 @@ public:
 
     static inline Resolution DefaultResolution = RES_1080;
 
+private:
+
+    void ReInitialize(const Resolution& res = DefaultResolution);
+
 public:
 
-    ScreenCapture(const ScreenCapture&) = delete;
+    ScreenCapture(const ScreenCapture&);
     ScreenCapture(ScreenCapture&&) = delete;
 
     ScreenCapture(const Resolution& res = DefaultResolution);
@@ -124,7 +128,7 @@ public:
 
     void CaptureScreen();  // Capture the screen and store in _currentCapture
 
-    void ReInitialize(const Resolution& res = DefaultResolution);  // Resize the destination screen
+    void ReSize(const Resolution& res = DefaultResolution);
 
     constexpr const size_t TotalSize() const;  // Size of header and data
 

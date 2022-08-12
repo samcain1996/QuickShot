@@ -84,6 +84,8 @@ ScreenCapture::~ScreenCapture() {
 
 }
 
+ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.ImageResolution()) {}
+
 constexpr const BmpFileHeader ScreenCapture::BaseHeader() {
 
     BmpFileHeader baseHeader {};  // TODO: See how to init all vals to 0
@@ -138,6 +140,10 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
 
 constexpr const size_t ScreenCapture::TotalSize() const {
     return _bitmapSize + BMP_HEADER_SIZE;
+}
+
+void ScreenCapture::ReSize(const Resolution& resolution) {
+    ReInitialize(resolution);
 }
 
 void ScreenCapture::ReInitialize(const Resolution& resolution) {
