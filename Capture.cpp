@@ -68,7 +68,7 @@ ScreenCapture::~ScreenCapture() {
 
 #elif defined(__APPLE__)
 
-    delete[](ByteArray) _currentCapture;    
+    delete[](ByteArray) _capture;    
 
     CGImageRelease(_image);
     CGContextRelease(_context);
@@ -154,8 +154,8 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
     #if defined(__APPLE__)
 
-    delete[](ByteArray)_currentCapture;
-    _currentCapture = new Byte[_bitmapSize];
+    delete[](ByteArray)_capture;
+    _capture = new Byte[_bitmapSize];
 
     #endif
 
@@ -173,7 +173,7 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
     GlobalFree(_hDIB);
 
     _hDIB = GlobalAlloc(GHND, _bitmapSize);
-    _currentCapture = (PixelData)GlobalLock(_hDIB);
+    _capture = (PixelData)GlobalLock(_hDIB);
 
 #endif
 	
