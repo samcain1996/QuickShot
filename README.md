@@ -3,9 +3,17 @@ Quickly take screenshots, programatically, on Linux, Windows, and macOS
 
 ## Building
 
+```
+mkdir build
+cd build
+cmake ../
+```
+
 ### Linux
 
-clang++ -g -std=c++20 *.cpp -o QuickShot -O2 -lX11
+```
+make
+```
 
 ### macOS (TODO)
 
