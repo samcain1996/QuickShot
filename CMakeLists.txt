@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 if (APPLE)
 
-# TODO
+find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices)
+link_libraries(${APPLICATIONSERVICES_LIBRARY})
 
 elseif (UNIX)
 

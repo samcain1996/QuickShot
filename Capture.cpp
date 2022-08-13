@@ -1,9 +1,8 @@
 #include "Capture.h"
 
-
 const Resolution& ScreenCapture::ImageResolution() const { return _resolution; }
 
-constexpr const Uint32 ScreenCapture::CalulcateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel) {
+constexpr const Uint32 ScreenCapture::CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel) {
     return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
 }
 
@@ -13,6 +12,8 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
     _resolution.width  = width;
     _resolution.height = height;
+
+    _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
 
 #if defined(__linux__)
 
@@ -43,9 +44,12 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
 #if defined(__APPLE__)
 
-    _capture = new Byte[CalulcateBMPFileSize(_resolution)];
+    if (_test.capacity() < _bitmapSize)
+        _test.reserve(_bitmapSize);
+    
+    _capture = new char[_bitmapSize];
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    _context = CGBitmapContextCreate(_capture, _resolution.width, _resolution.height, 
+    _context = CGBitmapContextCreate(_test.data(), _resolution.width, _resolution.height, 
         8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
@@ -68,7 +72,7 @@ ScreenCapture::~ScreenCapture() {
 
 #elif defined(__APPLE__)
 
-    delete[](ByteArray) _capture;    
+    delete[](PixelData) _capture;    
 
     CGImageRelease(_image);
     CGContextRelease(_context);
@@ -114,7 +118,7 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
         BMP_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
 
     // Encode pixels wide
-    EncodeAsByte(&header[4+BMP_FILE_HEADER_SIZE], resolution.width);
+    EncodeAsByte(&header[4 + BMP_FILE_HEADER_SIZE], resolution.width);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
@@ -123,7 +127,7 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
 #endif
 
     // Encode pixels high
-    EncodeAsByte(&header[8+BMP_FILE_HEADER_SIZE], resolution.height);
+    EncodeAsByte(&header[8 + BMP_FILE_HEADER_SIZE], resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
@@ -150,12 +154,12 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
     _resolution = resolution;
 
-    _bitmapSize = CalulcateBMPFileSize(_resolution, _bitsPerPixel);
+    _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
 
     #if defined(__APPLE__)
 
-    delete[](ByteArray)_capture;
-    _capture = new Byte[_bitmapSize];
+    delete[](PixelData)_capture;
+    _capture = new char[_bitmapSize];
 
     #endif
 
@@ -195,7 +199,7 @@ const size_t ScreenCapture::WholeDeal(PixelData& arr) const {
 const ImageData ScreenCapture::WholeDeal() const {
 
     ImageData wholeDeal(_header.begin(), _header.end());
-    std::copy(_capture, _capture + _bitmapSize, std::back_inserter(wholeDeal));
+    std::copy((PixelData)_capture, (PixelData)_capture + _bitmapSize, std::back_inserter(wholeDeal));
     
     return wholeDeal;
 
@@ -212,7 +216,7 @@ const size_t ScreenCapture::GetImageData(PixelData& arr) const {
 }
 
 const ImageData ScreenCapture::GetImageData() const {
-    return ImageData(_capture, _capture + _bitmapSize);
+    return ImageData((PixelData)_capture, (PixelData)_capture + _bitmapSize);
 }
 
 void ScreenCapture::CaptureScreen() {
@@ -252,7 +256,9 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     }
 
 	// Save image to disk
-    std::ofstream(filename, std::ios::binary).write((char*)WholeDeal().data(), TotalSize());
+    std::ofstream x(filename, std::ios::binary);
+    x.write(_header.data(), BMP_HEADER_SIZE);
+    x.write((char*)_test.data(), _bitmapSize);
 
 }
 

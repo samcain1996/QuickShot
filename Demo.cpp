@@ -33,24 +33,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    unsigned int width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
-    unsigned int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
+    int width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
+    int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
     // Initialize with resolution of 1920x1080
-    ScreenCapture screen(width, height); 
+    ScreenCapture screen(width, height);
 
     // Capture the screen content
-    screen.CaptureScreen();
-
-    // Method 1: Faster, requires deleting array when done
-    CaptureScreenArray(screen);
-
-    // Method 2: Slower, safer
-    CaptureScreenVector(screen);
-
-    // ScreenCaptures can be resized to predefined or arbitrary resolutions
-    screen.ReSize(RES_720);
-
     screen.CaptureScreen();
 
     // Save ScreenCapture to disk

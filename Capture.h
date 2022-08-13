@@ -33,11 +33,15 @@ constexpr void EncodeAsByte(char encodedNumber[4], const Uint32 numberToEncode) 
 
 }
 
+// BMP Constants
 constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
 constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
 constexpr const Ushort BMP_HEADER_SIZE      = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
 constexpr const Ushort BMP_COLOR_CHANNELS   = 4;
 
+enum class Mode { QUICK, SAFE };
+
+// Types
 using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 
 using PixelData = char*;
@@ -56,6 +60,7 @@ constexpr const Resolution RES_1080 = { 1920, 1080 };
 constexpr const Resolution RES_1440 = { 2560, 1440 };
 constexpr const Resolution RES_4K = { 3840, 2160 };
 
+/*--------------------------------------------------*/
 
 class ScreenCapture {
 	
@@ -64,16 +69,19 @@ public:
     static const BmpFileHeader ConstructBMPHeader(Resolution resolution = RES_1080,
         const Ushort bitsPerPixel = 32);  // Initializes values for bitmap header
 
-    constexpr static const Uint32 CalulcateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32);
+    constexpr static const Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32);
 
+    static inline Mode mode = Mode::QUICK;
 private:
 	
-    Resolution _resolution;      
+    Resolution _resolution = DefaultResolution;  
     BmpFileHeader _header {};
 
-    PixelData _capture = nullptr;     // Buffer holding screen capture
+    // Buffer holding screen capture
+    void* _capture = nullptr;    
+    std::vector<void*> _test{}; 
 
-    Uint32 _bitmapSize = 0;
+    Uint32 _bitmapSize   = 0;
     Uint32 _bitsPerPixel = 32;
 
 #if defined(_WIN32)
@@ -97,7 +105,7 @@ private:
 #elif defined (__linux__) 
 
     Display* _display = nullptr;
-    Window _root;
+    Window _root {};
     XWindowAttributes _attributes = { 0 };
     XImage* _image = nullptr;
 
