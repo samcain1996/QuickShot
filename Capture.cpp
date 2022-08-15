@@ -13,10 +13,6 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
     _resolution.width  = width;
     _resolution.height = height;
 
-    _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
-
-    _pixelData.reserve(_bitmapSize); // TODO: Does this compound?
-
 #if defined(__linux__)
 
     _display = XOpenDisplay(nullptr);
@@ -42,8 +38,6 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 #if defined(__APPLE__)
     
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
-        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
@@ -149,6 +143,8 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
+    _pixelData = ImageData(_bitmapSize, '\0');
+
 #if defined(_WIN32)
 
     GetClientRect(GetDesktopWindow(), &rcClient);
@@ -165,6 +161,13 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
     _hDIB = GlobalAlloc(GHND, _bitmapSize);
     (char*)GlobalLock(_hDIB);
+
+#elif defined(__APPLE__)
+
+    CGContextRelease(_context);
+
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
+        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 	
