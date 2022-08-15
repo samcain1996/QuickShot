@@ -15,6 +15,8 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
     _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
 
+    _pixelData.reserve(_bitmapSize); // TODO: Does this compound?
+
 #if defined(__linux__)
 
     _display = XOpenDisplay(nullptr);
@@ -43,13 +45,9 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 #endif
 
 #if defined(__APPLE__)
-
-    if (_test.capacity() < _bitmapSize)
-        _test.reserve(_bitmapSize);
     
-    _capture = new char[_bitmapSize];
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    _context = CGBitmapContextCreate(_test.data(), _resolution.width, _resolution.height, 
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
         8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
@@ -71,8 +69,6 @@ ScreenCapture::~ScreenCapture() {
     DeleteObject(_memHDC);
 
 #elif defined(__APPLE__)
-
-    delete[](PixelData) _capture;    
 
     CGImageRelease(_image);
     CGContextRelease(_context);
@@ -156,13 +152,6 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
     _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
 
-    #if defined(__APPLE__)
-
-    delete[](PixelData)_capture;
-    _capture = new char[_bitmapSize];
-
-    #endif
-
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
 #if defined(_WIN32)
@@ -177,49 +166,22 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
     GlobalFree(_hDIB);
 
     _hDIB = GlobalAlloc(GHND, _bitmapSize);
-    _capture = (PixelData)GlobalLock(_hDIB);
+    // _pixelData = ImageData((char*)GlobalLock(_hDIB), (char*)GlobalLock(_hDIB) + _bitmapSize);  // Probably wrong
 
 #endif
 	
 }
 
-const size_t ScreenCapture::WholeDeal(PixelData& arr) const {
-
-    const size_t captureSize = TotalSize();
-
-    if (arr == nullptr) { arr = new char[captureSize]; }
-
-    std::memcpy(arr, &_header, BMP_HEADER_SIZE);
-
-    std::memcpy(&arr[BMP_HEADER_SIZE], _capture, _bitmapSize);
-
-    return captureSize;
-}
-
 const ImageData ScreenCapture::WholeDeal() const {
 
     ImageData wholeDeal(_header.begin(), _header.end());
-    std::copy((PixelData)_capture, (PixelData)_capture + _bitmapSize, std::back_inserter(wholeDeal));
+    std::copy(_pixelData.data(), _pixelData.data() + _bitmapSize, std::back_inserter(wholeDeal));
     
     return wholeDeal;
 
 }
 
-const size_t ScreenCapture::GetImageData(PixelData& arr) const {
-
-    if (arr == nullptr) { arr = new char[_bitmapSize]; }
-
-    std::memcpy(arr, _capture, _bitmapSize);
-
-    return _bitmapSize;
-
-}
-
-const ImageData ScreenCapture::GetImageData() const {
-    return ImageData((PixelData)_capture, (PixelData)_capture + _bitmapSize);
-}
-
-void ScreenCapture::CaptureScreen() {
+const ImageData ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
 
@@ -231,7 +193,7 @@ void ScreenCapture::CaptureScreen() {
     // Should be legal because BITMAPINFO has no padding, all its data members are aligned.
     GetDIBits(_memHDC, _hScreen, 0,
         (UINT)_screenBMP.bmHeight,
-        _capture,
+        _pixelData.data(),
         (BITMAPINFO*)(&_header[BMP_FILE_HEADER_SIZE]), DIB_RGB_COLORS);
 
 #elif defined(__APPLE__)
@@ -242,9 +204,11 @@ void ScreenCapture::CaptureScreen() {
 #elif defined(__linux__)
 
     _image = XGetImage(_display, _root, 0, 0, _resolution.width, _resolution.height, AllPlanes, ZPixmap);
-    _capture = (PixelData)_image->data;
+    _pixelData = ImageData(_image->data, _image->data + _bitmapSize);
 
 #endif
+
+    return ImageData(_pixelData.begin(), _pixelData.begin() + _bitmapSize);
 
 }
 
@@ -256,9 +220,7 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     }
 
 	// Save image to disk
-    std::ofstream x(filename, std::ios::binary);
-    x.write(_header.data(), BMP_HEADER_SIZE);
-    x.write((char*)_test.data(), _bitmapSize);
+    std::ofstream(filename, std::ios::binary).write(WholeDeal().data(), TotalSize());
 
 }
 

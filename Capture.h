@@ -39,8 +39,6 @@ constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
 constexpr const Ushort BMP_HEADER_SIZE      = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
 constexpr const Ushort BMP_COLOR_CHANNELS   = 4;
 
-enum class Mode { QUICK, SAFE };
-
 // Types
 using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 
@@ -71,15 +69,13 @@ public:
 
     constexpr static const Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32);
 
-    static inline Mode mode = Mode::QUICK;
 private:
 	
     Resolution _resolution = DefaultResolution;  
-    BmpFileHeader _header {};
+    BmpFileHeader _header{};
 
-    // Buffer holding screen capture
-    void* _capture = nullptr;    
-    std::vector<void*> _test{}; 
+    // Buffer holding screen capture 
+    ImageData _pixelData{}; 
 
     Uint32 _bitmapSize   = 0;
     Uint32 _bitsPerPixel = 32;
@@ -134,17 +130,13 @@ public:
     ScreenCapture& operator=(const ScreenCapture&) = delete;
     ScreenCapture& operator=(ScreenCapture&&) = delete;
 
-    void CaptureScreen();  // Capture the screen and store in _currentCapture
 
     void ReSize(const Resolution& res = DefaultResolution);
 
-    constexpr const size_t TotalSize() const;  // Size of header and data
-
-    const size_t WholeDeal(PixelData& arr) const;
+    const ImageData CaptureScreen(); 
+    
     const ImageData WholeDeal() const;
-
-    const size_t GetImageData(PixelData& arr) const;
-    const ImageData GetImageData() const;
+    constexpr const size_t TotalSize() const;
 
     const Resolution& ImageResolution() const;
 

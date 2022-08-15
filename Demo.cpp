@@ -1,31 +1,6 @@
 #include <iostream>
 #include "Capture.h"
 
-void CaptureScreenVector(ScreenCapture& screen) {
-
-    // Capture the pixel data only
-    ImageData imageData = screen.GetImageData();
-
-    // Capture the piel data with bmp header
-    ImageData fullImage = screen.WholeDeal();
-
-}
-
-void CaptureScreenArray(ScreenCapture& screen) {
-
-    // Capture only the pixel data only
-    char* imageData = nullptr;
-    size_t imageDataSize = screen.GetImageData(imageData);
-
-    // Capture the pixel data with bmp header
-    char* fullImage = nullptr;
-    size_t fullImageSize = screen.WholeDeal(fullImage);
-
-    // Must manually free memory using this method
-    delete[] imageData;
-    delete[] fullImage;
-}
-
 int main(int argc, char** argv) {
 
     if (argc != 1 && argc != 3) {

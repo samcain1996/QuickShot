@@ -6,8 +6,6 @@ int main() {
 
     ScreenCapture screen(RES_1080);
 
-    PixelData image = nullptr;
-
     std::chrono::steady_clock::time_point start, end;
     long long avgDuration = 0;
 
@@ -17,7 +15,6 @@ int main() {
         start = std::chrono::high_resolution_clock::now();
 
         screen.CaptureScreen();
-        screen.GetImageData(image);
 
         end = std::chrono::high_resolution_clock::now();
 
