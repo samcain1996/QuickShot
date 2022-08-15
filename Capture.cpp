@@ -208,7 +208,7 @@ const ImageData ScreenCapture::CaptureScreen() {
 
 #endif
 
-    return ImageData(_pixelData.begin(), _pixelData.begin() + _bitmapSize);
+    return _pixelData;
 
 }
 

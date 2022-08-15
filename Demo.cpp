@@ -15,10 +15,15 @@ int main(int argc, char** argv) {
     ScreenCapture screen(width, height);
 
     // Capture the screen content
-    screen.CaptureScreen();
+    ImageData img = screen.CaptureScreen();
+
+    std::ofstream file("test.bmp", std::ios::binary);
+    file.write(screen.ConstructBMPHeader(screen.ImageResolution()).data(), 
+        BMP_HEADER_SIZE);
+    file.write(img.data(), img.size());
 
     // Save ScreenCapture to disk
-    screen.SaveToFile("TestScreenshot.bmp");
+    //screen.SaveToFile("TestScreenshot.bmp");
 
     return 0;
 }
