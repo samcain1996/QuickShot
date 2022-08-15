@@ -164,7 +164,9 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
 #elif defined(__APPLE__)
 
-    CGContextRelease(_context);
+    // Ok to call on null objects
+    CGImageRelease(_image);
+    CGContextRelease(_context); 
 
     _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
         8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
@@ -182,7 +184,7 @@ const ImageData ScreenCapture::WholeDeal() const {
 
 }
 
-const ImageData ScreenCapture::CaptureScreen() {
+const ImageData& ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
 

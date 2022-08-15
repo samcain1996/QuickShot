@@ -135,7 +135,7 @@ public:
 
     void ReSize(const Resolution& res = DefaultResolution);
 
-    const ImageData CaptureScreen(); 
+    const ImageData& CaptureScreen(); 
     
     const ImageData WholeDeal() const;
     constexpr const size_t TotalSize() const;
