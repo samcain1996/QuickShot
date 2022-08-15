@@ -82,8 +82,10 @@ private:
 
 #if defined(_WIN32)
 
-    HDC _srcHDC;                   // Device context of source
-    HDC _memHDC;                   // Device context of destination
+    RECT rcClient;
+
+    HDC _srcHDC; // Device context of source
+    HDC _memHDC; // Device context of destination
 
     // Bitmap data
     HBITMAP _hScreen;

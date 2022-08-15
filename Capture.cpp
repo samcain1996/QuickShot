@@ -31,11 +31,6 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
     _srcHDC = GetDC(GetDesktopWindow());  // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
-    // Create bitmap from the source using the destination's resolution
-    _hScreen = CreateCompatibleBitmap(_srcHDC, _resolution.width, _resolution.height);
-
-    SelectObject(_memHDC, _hScreen);  // Select bitmap into DC [2]
-
     // Not likely that source and destination are same resolution.
     // Tell system how to stretch the image
     SetStretchBltMode(_memHDC, HALFTONE);
@@ -132,7 +127,7 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
 
 #endif
 
-    header[BMP_FILE_HEADER_SIZE+14] = bitsPerPixel;
+    header[BMP_FILE_HEADER_SIZE + 14] = bitsPerPixel;
 	
     return header;
 	
@@ -156,17 +151,20 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
 
 #if defined(_WIN32)
 
+    GetClientRect(GetDesktopWindow(), &rcClient);
+
     // Recreate bitmap with new dimensions
     DeleteObject(_hScreen);
     _hScreen = CreateCompatibleBitmap(_srcHDC, _resolution.width, _resolution.height);
-    SelectObject(_memHDC, _hScreen);
+
+    SelectObject(_memHDC, _hScreen);  // Select bitmap into DC [2]
 
     // Free _hDIB and re-lock
     GlobalUnlock(_hDIB);
     GlobalFree(_hDIB);
 
     _hDIB = GlobalAlloc(GHND, _bitmapSize);
-    // _pixelData = ImageData((char*)GlobalLock(_hDIB), (char*)GlobalLock(_hDIB) + _bitmapSize);  // Probably wrong
+    (char*)GlobalLock(_hDIB);
 
 #endif
 	
@@ -185,8 +183,11 @@ const ImageData ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
 
-    StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
-        _srcHDC, 0, 0, _resolution.width, _resolution.height, SRCCOPY);
+    //StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
+    //    _srcHDC, 0, 0, rcClient.right, rcClient.bottom, SRCCOPY);
+
+    BitBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
+        _srcHDC, 0, 0, SRCCOPY);
 
     GetObject(_hScreen, sizeof BITMAP, &_screenBMP);
 
