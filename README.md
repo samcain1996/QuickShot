@@ -25,9 +25,7 @@ cmake -DDEMO=ON ../
 
 ### Linux and macOS
 
-```
-make
-```
+After CMake is finished, run `make` to create the library and/or demo executable
 
 ### Windows
 
