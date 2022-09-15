@@ -1,6 +1,6 @@
 # QuickShot
 
-Quickly take screenshots, programatically, on Linux, Windows, and macOS
+Library to quickly take screenshots, programatically, on Linux, Windows, and macOS
 
 ## Building
 
