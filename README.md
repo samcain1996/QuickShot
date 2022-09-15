@@ -2,13 +2,11 @@
 
 Quickly take screenshots, programatically, on Linux, Windows, and macOS
 
-# TODO
-
-Compile to shared library
-
 ## Building
 
-Building is only needed to view demos
+Builds 2 projects.
+1. Demo of QuickShot and its basic functionality
+2. Shared library to include in other projects
 
 ```
 mkdir build
@@ -43,7 +41,7 @@ Link the X11 library in your build command. `-lX11`
 Link the Application Services framework in your build command. `-framework ApplicationServices`
 
 
-1. Include "Capture.h" in your headers and "Capture.cpp" in your source files
+1. Include "Capture.h" in your source files
 2. Instantiate a `ScreenCapture` object. The default resolution of a screen shot is 1920x1080. The default resolution can be adjusted in Capture.h. 
     a. A resolution other than the default resolution can be used by providing the width and height in the object constructor
 3. To capture the current screen, call the `CaptureScreen` function which returns an vector representing the pixeldata of the screen. (Note: CaptureScreen does not return any metadata or header, just the raw pixels)
