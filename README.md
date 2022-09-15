@@ -4,19 +4,24 @@ Quickly take screenshots, programatically, on Linux, Windows, and macOS
 
 ## Building
 
-Builds 2 projects.
-1. Demo of QuickShot and its basic functionality
-2. Shared library to include in other projects
+Create a new directory to build the project in
 
 ```
 mkdir build
 cd build
+```
+
+If you want just the library execute the following:
+
+```
 cmake ../
 ```
 
-## Demo
+If you also want a demo of the basic functionality then execute the following:
 
-A demo is included with QuickShot to demonstrate its basic functionality
+```
+cmake -DDEMO=ON ../
+```
 
 ### Linux and macOS
 
@@ -26,20 +31,9 @@ make
 
 ### Windows
 
-Launch the solution created by CMake
+Launch the solution located in the build directory
 
 ## Use
-
-If this code is used in a separate project and the target OS is NOT Windows then the following must be done:
-
-### Linux
-
-Link the X11 library in your build command. `-lX11`
-
-### macOS
-
-Link the Application Services framework in your build command. `-framework ApplicationServices`
-
 
 1. Include "Capture.h" in your source files
 2. Instantiate a `ScreenCapture` object. The default resolution of a screen shot is 1920x1080. The default resolution can be adjusted in Capture.h. 

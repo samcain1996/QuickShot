@@ -33,3 +33,4 @@
 
 build/*
 *.bmp
+bench.cpp
