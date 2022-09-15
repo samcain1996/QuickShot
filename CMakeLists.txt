@@ -4,11 +4,9 @@ set(DEMO OFF CACHE BOOL "Build demo")
 
 if (DEMO)
 project(QuickShotDemo)
-add_executable(QuickShotDemo Capture.cpp Demo.cpp)
 endif()
 
 project(QuickShot VERSION 1.0.0 DESCRIPTION "Programatically take screenshot")
-add_library(QuickShot SHARED Capture.cpp)
 
 if (APPLE)
 
@@ -22,6 +20,13 @@ link_libraries(${X11_LIBRARIES})
 include_directories(${X11_INCLUDE_DIR})
 
 endif()
+
+
+if (DEMO)
+add_executable(QuickShotDemo Capture.cpp Demo.cpp)
+endif()
+
+add_library(QuickShot SHARED Capture.cpp)
 
 set_target_properties(QuickShot PROPERTIES 
     VERSION ${PROJECT_VERSION}
