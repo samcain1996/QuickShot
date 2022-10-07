@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     ScreenCapture screen(width, height);
 
     // Get the header of bmp with current resolution
-    BmpFileHeader header = screen.ConstructBMPHeader(screen.ImageResolution());
+    BmpFileHeader header = screen.ConstructBMPHeader(screen.DestResolution());
 
     // Capture the pixel data of the screen
     ImageData img = screen.CaptureScreen();

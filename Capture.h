@@ -23,13 +23,14 @@
 
 using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
+using byte = char;
 
-constexpr void EncodeAsByte(char encodedNumber[4], const Uint32 numberToEncode) {
+constexpr void EncodeAsByte(byte encodedNumber[4], const Uint32 numberToEncode) {
 
-    encodedNumber[3] = (char)(numberToEncode >> 24) & 0xFF;
-    encodedNumber[2] = (char)(numberToEncode >> 16) & 0xFF;
-    encodedNumber[1] = (char)(numberToEncode >> 8) & 0xFF;
-    encodedNumber[0] = (char)(numberToEncode) & 0xFF;
+    encodedNumber[3] = (numberToEncode >> 24) & 0xFF;
+    encodedNumber[2] = (numberToEncode >> 16) & 0xFF;
+    encodedNumber[1] = (numberToEncode >> 8) & 0xFF;
+    encodedNumber[0] = (numberToEncode) & 0xFF;
 
 }
 
@@ -40,10 +41,10 @@ constexpr const Ushort BMP_HEADER_SIZE      = BMP_FILE_HEADER_SIZE + BMP_INFO_HE
 constexpr const Ushort BMP_COLOR_CHANNELS   = 4;
 
 // Types
-using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
+using BmpFileHeader = std::array<byte, BMP_HEADER_SIZE>;
 
-using PixelData = char*;
-using ImageData = std::vector<char>;
+using PixelData = byte*;
+using ImageData = std::vector<byte>;
 
 /*------------------RESOLUTIONS--------------------*/
 
@@ -71,7 +72,8 @@ public:
 
 private:
 	
-    Resolution _resolution = DefaultResolution;  
+    Resolution _sourceResolution = DefaultResolution;  
+    Resolution _destResolution = DefaultResolution;
     BmpFileHeader _header{};
 
     // Buffer holding screen capture 
@@ -117,6 +119,7 @@ public:
 
 private:
 
+    void ReInitialize(const Resolution& src, const Resolution& dest);
     void ReInitialize(const Resolution& res = DefaultResolution);
 
 public:
@@ -126,6 +129,9 @@ public:
 
     ScreenCapture(const Resolution& res = DefaultResolution);
     ScreenCapture(const Ushort width, const Ushort height);
+
+    ScreenCapture(const Resolution& src = DefaultResolution, const Resolution& dest = DefaultResolution);
+    ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, const Ushort destWidth, const Ushort destHeight);
 
     ~ScreenCapture();
 
@@ -140,7 +146,8 @@ public:
     const ImageData WholeDeal() const;
     constexpr const size_t TotalSize() const;
 
-    const Resolution& ImageResolution() const;
+    const Resolution& SourceResolution() const;
+    const Resolution& DestResolution() const;
 
     void SaveToFile(std::string filename = "screenshot.bmp") const;
 };
