@@ -81,13 +81,9 @@ ScreenCapture::~ScreenCapture() {
 
 ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.SourceResolution(), other.DestResolution()) {}
 
-const Resolution& ScreenCapture::SourceResolution() const {
-    return _sourceResolution;
-}
+const Resolution& ScreenCapture::SourceResolution() const { return _sourceResolution; }
 
-const Resolution& ScreenCapture::DestResolution() const {
-    return _destResolution;
-}
+const Resolution& ScreenCapture::DestResolution() const { return _destResolution; }
 
 constexpr const BmpFileHeader ScreenCapture::BaseHeader() {
 
@@ -131,7 +127,7 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
     std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
-        [](byte& b) { if ( b == '\0' ) { b = (byte)255; } });
+        [](char& b) { if ( b == '\0' ) { b = (char)255; } });
 
 #endif
 
@@ -145,9 +141,8 @@ constexpr const size_t ScreenCapture::TotalSize() const {
     return _bitmapSize + BMP_HEADER_SIZE;
 }
 
-void ScreenCapture::ReSize(const Resolution& resolution) {
-    ReInitialize(resolution);
-}
+void ScreenCapture::ReSize(const Resolution& resolution) { ReInitialize(resolution); }
+void ScreenCapture::ReSize(const Resolution& sourceRes, const Resolution& destRes) { ReInitialize(sourceRes, destRes); }
 
 void ScreenCapture::ReInitialize(const Resolution& sourceResolution, const Resolution& destResolution) {
 
@@ -175,8 +170,8 @@ void ScreenCapture::ReInitialize(const Resolution& sourceResolution, const Resol
     GlobalUnlock(_hDIB);
     GlobalFree(_hDIB);
 
-    _hDIB = GlobalAlloc(GHND, _bitmapSize);
-    (byte*)GlobalLock(_hDIB);
+    _hDIB = GlobalAlloc(GHND, CalculateBMPFileSize(_destResolution, _bitsPerPixel));
+    (char*)GlobalLock(_hDIB);
 
 #elif defined(__APPLE__)
 

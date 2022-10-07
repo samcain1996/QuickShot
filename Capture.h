@@ -23,9 +23,8 @@
 
 using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
-using byte = char;
 
-constexpr void EncodeAsByte(byte encodedNumber[4], const Uint32 numberToEncode) {
+constexpr void EncodeAsByte(char encodedNumber[4], const Uint32 numberToEncode) {
 
     encodedNumber[3] = (numberToEncode >> 24) & 0xFF;
     encodedNumber[2] = (numberToEncode >> 16) & 0xFF;
@@ -41,10 +40,10 @@ constexpr const Ushort BMP_HEADER_SIZE      = BMP_FILE_HEADER_SIZE + BMP_INFO_HE
 constexpr const Ushort BMP_COLOR_CHANNELS   = 4;
 
 // Types
-using BmpFileHeader = std::array<byte, BMP_HEADER_SIZE>;
+using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 
-using PixelData = byte*;
-using ImageData = std::vector<byte>;
+using PixelData = char*;
+using ImageData = std::vector<char>;
 
 /*------------------RESOLUTIONS--------------------*/
 
@@ -65,7 +64,7 @@ class ScreenCapture {
 	
 public:
 	
-    static const BmpFileHeader ConstructBMPHeader(Resolution resolution = RES_1080,
+    static const BmpFileHeader ConstructBMPHeader(Resolution resolution = DefaultResolution,
         const Ushort bitsPerPixel = 32);  // Initializes values for bitmap header
 
     constexpr static const Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32);
@@ -74,10 +73,10 @@ private:
 	
     Resolution _sourceResolution = DefaultResolution;  
     Resolution _destResolution = DefaultResolution;
-    BmpFileHeader _header{};
+    BmpFileHeader _header {};
 
     // Buffer holding screen capture 
-    ImageData _pixelData{}; 
+    ImageData _pixelData {}; 
 
     Uint32 _bitmapSize   = 0;
     Uint32 _bitsPerPixel = 32;
@@ -128,9 +127,9 @@ public:
     ScreenCapture(ScreenCapture&&) = delete;
 
     ScreenCapture(const Resolution& res = DefaultResolution);
-    ScreenCapture(const Ushort width, const Ushort height);
-
     ScreenCapture(const Resolution& src = DefaultResolution, const Resolution& dest = DefaultResolution);
+	
+    ScreenCapture(const Ushort width, const Ushort height);
     ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, const Ushort destWidth, const Ushort destHeight);
 
     ~ScreenCapture();
@@ -138,8 +137,8 @@ public:
     ScreenCapture& operator=(const ScreenCapture&) = delete;
     ScreenCapture& operator=(ScreenCapture&&) = delete;
 
-
     void ReSize(const Resolution& res = DefaultResolution);
+	void ReSize(const Resolution& sourceRes, const Resolution& destRes);
 
     const ImageData& CaptureScreen(); 
     

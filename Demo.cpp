@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
     // Initialize with resolution of 1920x1080
-    ScreenCapture screen(width, height);
+    ScreenCapture screen(RES_4K, RES_1080);
 
     // Get the header of bmp with current resolution
     BmpFileHeader header = screen.ConstructBMPHeader(screen.DestResolution());
