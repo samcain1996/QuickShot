@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
     // Initialize with resolution of 1920x1080
-    ScreenCapture screen(RES_4K, RES_1080);
+    ScreenCapture screen(RES_1080);
 
     // Get the header of bmp with current resolution
     BmpFileHeader header = screen.ConstructBMPHeader(screen.DestResolution());
@@ -27,13 +27,13 @@ int main(int argc, char** argv) {
     // Save ScreenCapture to disk
     screen.SaveToFile("TestScreenshot.bmp");
 
-    PixelMap map = Upscaler::BitmapToPixelMap(img.data(), screen.DestResolution(), 4, true);
-    char* newImgData = new char[img.size()];
-    Upscaler::ConvertFromPixelMap(map, newImgData, 4, true);
-    
-    imageFile = std::ofstream("NewTestScreenshot.bmp", std::ios::binary);
+    header = ScreenCapture::ConstructBMPHeader(RES_4K);
+    char* upscaled = new char[ScreenCapture::CalculateBMPFileSize(RES_4K)];
+    Upscaler::Upscale(img.data(), upscaled, RES_1080, RES_4K);
+
+    imageFile = std::ofstream("Upscaled.bmp", std::ios::binary);
     imageFile.write(header.data(), header.size());
-    imageFile.write(newImgData, img.size());
+    imageFile.write(upscaled, ScreenCapture::CalculateBMPFileSize(RES_4K));
 
     return 0;
 }

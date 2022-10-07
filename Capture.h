@@ -62,6 +62,7 @@ struct Resolution {
     }
 };
 
+constexpr const Resolution RES_144 = { 256, 144 };
 constexpr const Resolution RES_480 = { 640, 480 };
 constexpr const Resolution RES_720 = { 1280, 720 };
 constexpr const Resolution RES_1080 = { 1920, 1080 };
@@ -124,7 +125,7 @@ private:
 
 public:
 
-    static inline Resolution DefaultResolution = RES_1080;
+    static inline Resolution DefaultResolution = RES_144;
 
 private:
 
@@ -139,7 +140,7 @@ public:
     ScreenCapture(ScreenCapture&&) = delete;
 
     ScreenCapture(const Resolution& res = DefaultResolution);
-    ScreenCapture(const Resolution& src = DefaultResolution, const Resolution& dest = DefaultResolution);
+    ScreenCapture(const Resolution& src, const Resolution& dest);
 
     ScreenCapture(const Ushort width, const Ushort height);
     ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, const Ushort destWidth, const Ushort destHeight);
