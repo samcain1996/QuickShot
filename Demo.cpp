@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Capture.h"
+#include "Scale.h"
 
 int main(int argc, char** argv) {
 
@@ -26,6 +26,14 @@ int main(int argc, char** argv) {
 
     // Save ScreenCapture to disk
     screen.SaveToFile("TestScreenshot.bmp");
+
+    PixelMap map = Upscaler::BitmapToPixelMap(img.data(), screen.DestResolution(), 4, true);
+    char* newImgData = new char[img.size()];
+    Upscaler::ConvertFromPixelMap(map, newImgData, 4, true);
+    
+    imageFile = std::ofstream("NewTestScreenshot.bmp", std::ios::binary);
+    imageFile.write(header.data(), header.size());
+    imageFile.write(newImgData, img.size());
 
     return 0;
 }
