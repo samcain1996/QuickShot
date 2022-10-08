@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
     Scaler::Scale(img.data(), upscaled, captureResolution, higherResolution);
 
     // Manual save (scaled image)
-    std::ofstream imageFile("manualSave.bmp", std::ios::out);
+    std::ofstream imageFile("manualSave.bmp", std::ios::binary);
     imageFile.write(header.data(), header.size());
     imageFile.write(upscaled, ScreenCapture::CalculateBMPFileSize(higherResolution));
 

@@ -26,10 +26,6 @@ ScreenCapture::ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, cons
     _srcHDC = GetDC(GetDesktopWindow());  // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
-    // Not likely that source and destination are same resolution.
-    // Tell system how to stretch the image
-    SetStretchBltMode(_memHDC, HALFTONE);
-
     _hDIB = NULL;
 
 #endif
@@ -191,8 +187,8 @@ const ImageData ScreenCapture::WholeDeal() const {
 
     ImageData wholeDeal(_header.begin(), _header.end());
     PixelData destPixelData;
+	
     Scaler::Scale(_pixelData.data(), destPixelData, _captureResolution, _destResolution);
-
     std::copy(destPixelData, destPixelData + CalculateBMPFileSize(_destResolution), std::back_inserter(wholeDeal));
 
     return wholeDeal;
@@ -202,9 +198,6 @@ const ImageData ScreenCapture::WholeDeal() const {
 const ImageData& ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
-    
-    //StretchBlt(_memHDC, 0, 0, _destResolution.width, _destResolution.height,
-    //    _srcHDC, 0, 0, _captureResolution.width, _captureResolution.height, SRCCOPY);
 
     BitBlt(_memHDC, 0, 0, _captureResolution.width, _captureResolution.height,
         _srcHDC, 0, 0, SRCCOPY);
@@ -215,7 +208,7 @@ const ImageData& ScreenCapture::CaptureScreen() {
     GetDIBits(_memHDC, _hScreen, 0,
         (UINT)_screenBMP.bmHeight,
         _pixelData.data(),
-        (BITMAPINFO*)(&_header[BMP_FILE_HEADER_SIZE]), DIB_RGB_COLORS);
+        (BITMAPINFO*)(&ScreenCapture::ConstructBMPHeader(_captureResolution)[BMP_FILE_HEADER_SIZE]), DIB_RGB_COLORS);
 
 #elif defined(__APPLE__)
 
