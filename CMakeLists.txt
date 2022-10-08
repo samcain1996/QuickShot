@@ -26,12 +26,12 @@ if (DEMO)
 add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
 endif()
 
-add_library(QuickShot SHARED Capture.cpp)
+add_library(QuickShot SHARED Scale.cpp Capture.cpp)
 
 set_target_properties(QuickShot PROPERTIES 
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
-    PUBLIC_HEADER Capture.h)
+    PUBLIC_HEADER Scale.h Capture.h)
 
 target_include_directories(QuickShot PRIVATE .)
 
