@@ -1,5 +1,22 @@
 #include "Scale.h"
 
+/* ----- Pixel ----- */
+
+Pixel::Pixel() : rgba({ '\0', '\0', '\0', '\0' }) {}
+Pixel::Pixel(const char red, const char green, const char blue, const char alpha) : 
+    rgba{ red, green, blue, alpha } {}
+Pixel::Pixel(const char channels[BMP_COLOR_CHANNELS]) : rgba{ channels[0], channels[1], channels[2], channels[3] } {}
+
+Pixel::Pixel(const Pixel& other) : Pixel(other.rgba.data()) {}
+Pixel::Pixel(Pixel&& other) noexcept { rgba = std::move(other.rgba); };
+
+Pixel& Pixel::operator=(const Pixel& other) {
+	rgba = other.rgba;
+	return *this;
+}
+
+/* ----------------- */
+
 /* ----- Pixel Map ----- */
 
 PixelMap::PixelMap(const Resolution& res) : res(res), pixels(ScreenCapture::CalculateBMPFileSize(res) / BMP_COLOR_CHANNELS) {}
@@ -30,35 +47,31 @@ const Coordinate PixelMap::GetCoordinate(const Resolution& res, const size_t ind
 
 /* ----- Scaler ----- */
 
-const bool Scaler::Scale(const char* sourceImage, char*& scaled,
+PixelData Scaler::Scale(const PixelData& sourceImage,
     const Resolution& sourceResolution, const Resolution& destResolution) {
 
     // If the resolutions are the same, don't scale
     if (sourceResolution == destResolution) [[unlikely]] {
-        const Uint32 size = ScreenCapture::CalculateBMPFileSize(sourceResolution);
-
-        scaled = new char[size];
-        std::memcpy(scaled, sourceImage, size);
-        return true;
+        return sourceImage;
     }
 	
 	// Scale based upon the scale method
     switch (scaleMethod) {
 	[[likely]] case ScaleMethod::NearestNeighbor:
-		return NearestNeighbor(sourceImage, scaled, sourceResolution, destResolution);
+		return NearestNeighbor(sourceImage, sourceResolution, destResolution);
 	case ScaleMethod::Bilinear:
-		return Bilinear(sourceImage, scaled, sourceResolution, destResolution);
+		return Bilinear(sourceImage, sourceResolution, destResolution);
 	case ScaleMethod::Bicubic:
-		return Bicubic(sourceImage, scaled, sourceResolution, destResolution);
+		return Bicubic(sourceImage, sourceResolution, destResolution);
 	case ScaleMethod::Lanczos:
-		return Lanczos(sourceImage, scaled, sourceResolution, destResolution);
+		return Lanczos(sourceImage, sourceResolution, destResolution);
     default:
-        return false;
+        return PixelData();
     }
     
 }
 // Convert a bitmap to a list of pixels
-const PixelMap Scaler::BitmapToPixelMap(const char* image, const Resolution& res) {
+const PixelMap Scaler::BitmapToPixelMap(const PixelData& image, const Resolution& res) {
     
     PixelMap pixelMap(res);
     for (size_t pixelIdx = 0; pixelIdx < pixelMap.ImageSize(); pixelIdx += BMP_COLOR_CHANNELS) {
@@ -67,22 +80,21 @@ const PixelMap Scaler::BitmapToPixelMap(const char* image, const Resolution& res
     return pixelMap;
 
 }
-// Convert a list of pixels to a pre-allocated bitmap
-const void Scaler::ConvertFromPixelMap(const PixelMap& map, char*& image) {
+
+// Convert a list of pixels to a new bitmap
+PixelData Scaler::ConvertFromPixelMap(const PixelMap& map) {
 	
+	PixelData image(map.ImageSize());
+
     for (size_t pixelIdx = 0; pixelIdx < map.pixels.size(); pixelIdx++) {
-		const Pixel& pixel = map.pixels[pixelIdx];
-		
-		image[pixelIdx * BMP_COLOR_CHANNELS + 0] = pixel.rgba[0];
+        const Pixel& pixel = map.pixels[pixelIdx];
+
+        image[pixelIdx * BMP_COLOR_CHANNELS + 0] = pixel.rgba[0];
         image[pixelIdx * BMP_COLOR_CHANNELS + 1] = pixel.rgba[1];
         image[pixelIdx * BMP_COLOR_CHANNELS + 2] = pixel.rgba[2];
         image[pixelIdx * BMP_COLOR_CHANNELS + 3] = pixel.rgba[3];
     }
-}
-// Convert a list of pixels to a new bitmap
-char* const Scaler::ConvertFromPixelMap(const PixelMap& map) {
-	char* image = new char[map.pixels.size() * BMP_COLOR_CHANNELS];
-    ConvertFromPixelMap(map, image);
+
     return image;
 }
 // Get the ratio in the x-direction between dest and source images
@@ -100,7 +112,7 @@ const ScaleRatio Scaler::GetScaleRatio(const Resolution& source, const Resolutio
 }
 
 // Upscale using nearest neighbor technique
-const bool Scaler::NearestNeighbor(const char* source, char*& upscaled, const Resolution& src, const Resolution& dest) {
+PixelData Scaler::NearestNeighbor(const PixelData& source, const Resolution& src, const Resolution& dest) {
     PixelMap sourcePixels = BitmapToPixelMap(source, src);
     PixelMap destPixels(dest);
 	const auto& [ratioX, ratioY] = GetScaleRatio(src, dest);
@@ -119,19 +131,20 @@ const bool Scaler::NearestNeighbor(const char* source, char*& upscaled, const Re
     }
 
     // Convert to byte pointer
-	upscaled = ConvertFromPixelMap(destPixels);
-    return true;
+	return ConvertFromPixelMap(destPixels);
 }
 
 // TODO: Implement other scaling methods
-const bool Scaler::Bilinear(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
-    return false;
+PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest) {
+	
+
+    return PixelData();
 }
-const bool Scaler::Bicubic(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
-    return false;
+PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest) {
+	return PixelData();
 }
-const bool Scaler::Lanczos(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
-    return false;
+PixelData Scaler::Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest) {
+    return PixelData();
 }
 
 /* ------------------ */

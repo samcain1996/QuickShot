@@ -150,7 +150,7 @@ void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Reso
     _captureSize = CalculateBMPFileSize(_captureResolution, _bitsPerPixel);
     _captureHeader = ConstructBMPHeader(_captureResolution, _bitsPerPixel);
 
-    _pixelData = ImageData(_captureSize, '\0');
+    _pixelData = PixelData(_captureSize, '\0');
 
 #if defined(_WIN32)
 
@@ -182,21 +182,20 @@ void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Reso
 
 void ScreenCapture::ReInitialize(const Resolution& resolution) { ReInitialize(resolution, resolution); }
 
-const ImageData ScreenCapture::WholeDeal() const {
+const PixelData ScreenCapture::WholeDeal() const {
 
     const auto scaledHeader = ConstructBMPHeader(_destResolution, _bitsPerPixel);
 
-    ImageData wholeDeal(scaledHeader.begin(), scaledHeader.end());
-    PixelData destPixelData;
+    PixelData wholeDeal(scaledHeader.begin(), scaledHeader.end());
+    PixelData destPixelData = Scaler::Scale(_pixelData, _captureResolution, _destResolution);
 	
-    Scaler::Scale(_pixelData.data(), destPixelData, _captureResolution, _destResolution);
-    std::copy(destPixelData, destPixelData + CalculateBMPFileSize(_destResolution), std::back_inserter(wholeDeal));
+	std::copy(destPixelData.begin(), destPixelData.end(), std::back_inserter(wholeDeal));
 
     return wholeDeal;
 
 }
 
-const ImageData& ScreenCapture::CaptureScreen() {
+const PixelData& ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
 
@@ -219,7 +218,7 @@ const ImageData& ScreenCapture::CaptureScreen() {
 #elif defined(__linux__)
 
     _image = XGetImage(_display, _root, 0, 0, _captureResolution.width, _captureResolution.height, AllPlanes, ZPixmap);
-    _pixelData = ImageData(_image->data, _image->data + _captureSize);
+    _pixelData = PixelData(_image->data, _image->data + _captureSize);
 
 #endif
 
@@ -234,7 +233,7 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     }
 
 	// Save image to disk
-    const ImageData entireImage = WholeDeal();
+    const PixelData entireImage = WholeDeal();
     std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
 
 }

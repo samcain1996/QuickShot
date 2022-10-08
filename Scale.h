@@ -4,21 +4,19 @@
 
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
+using RGBA = std::array<char, BMP_COLOR_CHANNELS>;
 
 struct Pixel {
-    char rgba[BMP_COLOR_CHANNELS];
+    RGBA rgba;
 
-    Pixel() { std::memset(rgba, '\0', BMP_COLOR_CHANNELS); }
-	Pixel(const char red, const char green, const char blue, const char alpha) : rgba{ red, green, blue, alpha } {}
-    Pixel(const char channels[BMP_COLOR_CHANNELS]) { std::memcpy(rgba, channels, BMP_COLOR_CHANNELS); }
+    Pixel(); 
+    Pixel(const char red, const char green, const char blue, const char alpha);
+    Pixel(const char channels[BMP_COLOR_CHANNELS]);
 
-   Pixel(const Pixel& other) { std::memcpy(rgba, other.rgba, BMP_COLOR_CHANNELS); };
-   Pixel(Pixel&& other) {
-       std::memcpy(rgba, other.rgba, BMP_COLOR_CHANNELS);
-       std::memset(other.rgba, '\0', BMP_COLOR_CHANNELS);
-   };
+    Pixel(const Pixel& other);
+    Pixel(Pixel&& other) noexcept;
 
-   Pixel& operator=(const Pixel& other) { std::memcpy(rgba, other.rgba, BMP_COLOR_CHANNELS); return *this; };
+    Pixel& operator=(const Pixel& other);
 };
 
 using PixelList = std::vector<Pixel>;
@@ -65,7 +63,7 @@ public:
 
     static inline ScaleMethod scaleMethod = ScaleMethod::NearestNeighbor;
 
-    static const bool Scale(const char* sourceImage, char*& scaled,
+    static PixelData Scale(const PixelData& sourceImage,
         const Resolution& sourceResolution, const Resolution& destResolution);
 
 private:
@@ -75,13 +73,10 @@ private:
     ~Scaler() = delete;
 
     // Convert a bitmap to a list of pixels
-    const static PixelMap BitmapToPixelMap(const char* image, const Resolution& res);
-
-	// Convert a list of pixels to a pre-allocated bitmap
-    const static void ConvertFromPixelMap(const PixelMap& map, char*& image);
+    const static PixelMap BitmapToPixelMap(const PixelData& image, const Resolution& res);
 
     // Convert a list of pixels to a new bitmap
-    static char* const ConvertFromPixelMap(const PixelMap& map);
+    static PixelData ConvertFromPixelMap(const PixelMap& map);
 
     // Get the ratio in the x-direction between dest and source images
 	static const double ScaleRatioX(const Resolution& source, const Resolution& dest);
@@ -94,11 +89,11 @@ private:
     /* ----- Scaling Function ----- */
 
 	// Upscale using nearest neighbor technique
-    const static bool NearestNeighbor(const char* source, char*& upscaled, const Resolution& src, const Resolution& dest);
+    static PixelData NearestNeighbor(const PixelData& source, const Resolution& src, const Resolution& dest);
 	
     // TODO: Implement other scaling methods
-    const static bool Bilinear(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
-    const static bool Bicubic(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
-    const static bool Lanczos(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
+    static PixelData Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest);
+    static PixelData Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest);
+    static PixelData Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest);
 
 };

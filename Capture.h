@@ -42,8 +42,7 @@ constexpr const Ushort BMP_COLOR_CHANNELS = 4;
 // Types
 using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 
-using PixelData = char*;
-using ImageData = std::vector<char>;
+using PixelData = std::vector<char>;
 
 /*------------------RESOLUTIONS--------------------*/
 
@@ -90,7 +89,7 @@ private:
     BmpFileHeader _captureHeader {};
 
     // Buffer holding screen capture 
-    ImageData _pixelData{};
+    PixelData _pixelData{};
 
     Uint32 _captureSize = 0;
     Uint32 _bitsPerPixel = 32;
@@ -156,9 +155,9 @@ public:
     void ReSize(const Resolution& res = DefaultResolution);
     void ReSize(const Resolution& sourceRes, const Resolution& destRes);
 
-    const ImageData& CaptureScreen();
+    const PixelData& CaptureScreen();
 
-    const ImageData WholeDeal() const;
+    const PixelData WholeDeal() const;
     constexpr const size_t TotalSize() const;
 
     const Resolution& CaptureResolution() const;
