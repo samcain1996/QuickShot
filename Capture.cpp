@@ -148,8 +148,7 @@ void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Reso
     _destResolution = destResolution;
 
     _captureSize = CalculateBMPFileSize(_captureResolution, _bitsPerPixel);
-	
-    _header = ConstructBMPHeader(_destResolution, _bitsPerPixel);
+    _captureHeader = ConstructBMPHeader(_captureResolution, _bitsPerPixel);
 
     _pixelData = ImageData(_captureSize, '\0');
 
@@ -174,8 +173,8 @@ void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Reso
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    _context = CGBitmapContextCreate(_pixelData.data(), _destResolution.width, _destResolution.height, 
-        8, _destResolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    _context = CGBitmapContextCreate(_pixelData.data(), _captureResolution.width, _captureResolution.height, 
+        8, _captureResolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
@@ -185,7 +184,9 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) { ReInitialize(re
 
 const ImageData ScreenCapture::WholeDeal() const {
 
-    ImageData wholeDeal(_header.begin(), _header.end());
+    const auto scaledHeader = ConstructBMPHeader(_destResolution, _bitsPerPixel);
+
+    ImageData wholeDeal(scaledHeader.begin(), scaledHeader.end());
     PixelData destPixelData;
 	
     Scaler::Scale(_pixelData.data(), destPixelData, _captureResolution, _destResolution);

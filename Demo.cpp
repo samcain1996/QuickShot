@@ -17,30 +17,25 @@ int main(int argc, char** argv) {
     Resolution higherResolution = RES_4K;
     Resolution lowerResolution = RES_480;
 
-    // Initialize with resolution of 1920x1080
-    ScreenCapture screen(captureResolution, higherResolution);
+    Scaler::scaleMethod = ScaleMethod::NearestNeighbor;  // Currently the only one implemented
 
-    // Get the header of bmp with scaled resolution
-    BmpFileHeader header = screen.ConstructBMPHeader(screen.DestResolution());
+    // Initialize with resolution of 1920x1080
+    ScreenCapture screen(captureResolution);
 
     // Capture the pixel data of the screen
-    ImageData img = screen.CaptureScreen();
+    screen.CaptureScreen();
     
     // Save unscaled ScreenCapture to disk
-    screen.SaveToFile("autoSave.bmp");
-	
-    // Scale to target resolution
-    char* upscaled;
+    screen.SaveToFile("unscaled.bmp");
+    
+    screen.ReSize(captureResolution, higherResolution);
+    screen.CaptureScreen();
+    // Save unscaled ScreenCapture to disk
+    screen.SaveToFile("upscaled.bmp");
 
-    Scaler::scaleMethod = ScaleMethod::NearestNeighbor;  // Currently the only one implemented
-    Scaler::Scale(img.data(), upscaled, captureResolution, higherResolution);
-
-    // Manual save (scaled image)
-    std::ofstream imageFile("manualSave.bmp", std::ios::binary);
-    imageFile.write(header.data(), header.size());
-    imageFile.write(upscaled, ScreenCapture::CalculateBMPFileSize(higherResolution));
-
-    delete[] upscaled;  // Free memory
+    screen.ReSize(captureResolution, lowerResolution);
+    screen.CaptureScreen();
+    screen.SaveToFile("downscaled.bmp");
 
     return 0;
 }

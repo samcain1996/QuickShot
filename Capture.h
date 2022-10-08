@@ -87,7 +87,7 @@ private:
 
     Resolution _captureResolution = DefaultResolution;
     Resolution _destResolution = DefaultResolution;
-    BmpFileHeader _header {};
+    BmpFileHeader _captureHeader {};
 
     // Buffer holding screen capture 
     ImageData _pixelData{};

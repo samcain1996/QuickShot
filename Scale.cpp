@@ -29,12 +29,16 @@ const Coordinate PixelMap::GetCoordinate(const Resolution& res, const size_t ind
 /* --------------------- */
 
 /* ----- Scaler ----- */
+
 const bool Scaler::Scale(const char* sourceImage, char*& scaled,
     const Resolution& sourceResolution, const Resolution& destResolution) {
 
     // If the resolutions are the same, don't scale
     if (sourceResolution == destResolution) [[unlikely]] {
-        std::memcpy(scaled, sourceImage, ScreenCapture::CalculateBMPFileSize(sourceResolution));
+        const Uint32 size = ScreenCapture::CalculateBMPFileSize(sourceResolution);
+
+        scaled = new char[size];
+        std::memcpy(scaled, sourceImage, size);
         return true;
     }
 	
@@ -51,6 +55,7 @@ const bool Scaler::Scale(const char* sourceImage, char*& scaled,
     default:
         return false;
     }
+    
 }
 // Convert a bitmap to a list of pixels
 const PixelMap Scaler::BitmapToPixelMap(const char* image, const Resolution& res) {
