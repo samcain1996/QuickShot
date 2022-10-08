@@ -37,19 +37,17 @@ const bool Scaler::Scale(const char* sourceImage, char*& scaled,
         std::memcpy(scaled, sourceImage, ScreenCapture::CalculateBMPFileSize(sourceResolution));
         return true;
     }
-    
-    const ScaleRatio& ratio = GetScaleRatio(sourceResolution, destResolution);
 	
 	// Scale based upon the scale method
     switch (scaleMethod) {
 	[[likely]] case ScaleMethod::NearestNeighbor:
 		return NearestNeighbor(sourceImage, scaled, sourceResolution, destResolution);
 	case ScaleMethod::Bilinear:
-		return Bilinear(sourceImage, scaled, ratio);
+		return Bilinear(sourceImage, scaled, sourceResolution, destResolution);
 	case ScaleMethod::Bicubic:
-		return Bicubic(sourceImage, scaled, ratio);
+		return Bicubic(sourceImage, scaled, sourceResolution, destResolution);
 	case ScaleMethod::Lanczos:
-		return Lanczos(sourceImage, scaled, ratio);
+		return Lanczos(sourceImage, scaled, sourceResolution, destResolution);
     default:
         return false;
     }
@@ -121,13 +119,13 @@ const bool Scaler::NearestNeighbor(const char* source, char*& upscaled, const Re
 }
 
 // TODO: Implement other scaling methods
-const bool Scaler::Bilinear(const char* const source, char* upscaled, const ScaleRatio& scaleRatio) {
+const bool Scaler::Bilinear(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
     return false;
 }
-const bool Scaler::Bicubic(const char* const source, char* upscaled, const ScaleRatio& scaleRatio) {
+const bool Scaler::Bicubic(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
     return false;
 }
-const bool Scaler::Lanczos(const char* const source, char* upscaled, const ScaleRatio& scaleRatio) {
+const bool Scaler::Lanczos(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest) {
     return false;
 }
 

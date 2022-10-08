@@ -97,8 +97,8 @@ private:
     const static bool NearestNeighbor(const char* source, char*& upscaled, const Resolution& src, const Resolution& dest);
 	
     // TODO: Implement other scaling methods
-    const static bool Bilinear(const char* const source, char* upscaled, const ScaleRatio& scaleRatio);
-    const static bool Bicubic(const char* const source, char* upscaled, const ScaleRatio& scaleRatio);
-    const static bool Lanczos(const char* const source, char* upscaled, const ScaleRatio& scaleRatio);
+    const static bool Bilinear(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
+    const static bool Bicubic(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
+    const static bool Lanczos(const char* const source, char* upscaled, const Resolution& src, const Resolution& dest);
 
 };
