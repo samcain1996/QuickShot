@@ -1,4 +1,4 @@
-#include "Capture.h"
+#include "Scale.h"
 
 constexpr const Uint32 ScreenCapture::CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel) {
     return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
@@ -6,8 +6,9 @@ constexpr const Uint32 ScreenCapture::CalculateBMPFileSize(const Resolution& res
 
 ScreenCapture::ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, const Ushort destWidth, const Ushort destHeight) {
 
-    _sourceResolution.width = srcWidth;
-    _sourceResolution.height = srcHeight;
+    _captureResolution.width = srcWidth;
+    _captureResolution.height = srcHeight;
+	
     _destResolution.width = destWidth;
     _destResolution.height = destHeight;
 
@@ -39,12 +40,12 @@ ScreenCapture::ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, cons
 
 #endif
 
-    ReInitialize(_sourceResolution, _destResolution);
+    ReInitialize(_captureResolution, _destResolution);
 
 }
 
-ScreenCapture::ScreenCapture(const Resolution& sourceResolution, const Resolution& destResolution) : 
-    ScreenCapture(sourceResolution.width, sourceResolution.height, destResolution.width, destResolution.height) {}
+ScreenCapture::ScreenCapture(const Resolution& CaptureResolution, const Resolution& destResolution) : 
+    ScreenCapture(CaptureResolution.width, CaptureResolution.height, destResolution.width, destResolution.height) {}
 
 ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : ScreenCapture(width, height, width, height) {}
 
@@ -79,9 +80,9 @@ ScreenCapture::~ScreenCapture() {
 }
 
 
-ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.SourceResolution(), other.DestResolution()) {}
+ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.CaptureResolution(), other.DestResolution()) {}
 
-const Resolution& ScreenCapture::SourceResolution() const { return _sourceResolution; }
+const Resolution& ScreenCapture::CaptureResolution() const { return _captureResolution; }
 
 const Resolution& ScreenCapture::DestResolution() const { return _destResolution; }
 
@@ -138,31 +139,30 @@ const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
 }
 
 constexpr const size_t ScreenCapture::TotalSize() const {
-    return _bitmapSize + BMP_HEADER_SIZE;
+    return _captureSize + BMP_HEADER_SIZE;
 }
 
 void ScreenCapture::ReSize(const Resolution& resolution) { ReInitialize(resolution); }
 void ScreenCapture::ReSize(const Resolution& sourceRes, const Resolution& destRes) { ReInitialize(sourceRes, destRes); }
 
-void ScreenCapture::ReInitialize(const Resolution& sourceResolution, const Resolution& destResolution) {
+void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Resolution& destResolution) {
 
-    _sourceResolution = sourceResolution;
-
+    _captureResolution = captureResolution;
+	
     _destResolution = destResolution;
 
-    _bitmapSize = CalculateBMPFileSize(_destResolution, _bitsPerPixel);
+    _captureSize = CalculateBMPFileSize(_captureResolution, _bitsPerPixel);
+    _destSize = CalculateBMPFileSize(_destResolution, _bitsPerPixel);
+	
+    _header = ConstructBMPHeader(_captureResolution, _bitsPerPixel);
 
-    _header = ConstructBMPHeader(_destResolution, _bitsPerPixel);
-
-    _pixelData = ImageData(_bitmapSize, '\0');
+    _pixelData = ImageData(_captureSize, '\0');
 
 #if defined(_WIN32)
 
-    GetClientRect(GetDesktopWindow(), &rcClient);
-
     // Recreate bitmap with new dimensions
     DeleteObject(_hScreen);
-    _hScreen = CreateCompatibleBitmap(_srcHDC, _destResolution.width, _destResolution.height);
+    _hScreen = CreateCompatibleBitmap(_srcHDC, _captureResolution.width, _captureResolution.height);
 
     SelectObject(_memHDC, _hScreen);  // Select bitmap into DC [2]
 
@@ -170,7 +170,7 @@ void ScreenCapture::ReInitialize(const Resolution& sourceResolution, const Resol
     GlobalUnlock(_hDIB);
     GlobalFree(_hDIB);
 
-    _hDIB = GlobalAlloc(GHND, CalculateBMPFileSize(_destResolution, _bitsPerPixel));
+    _hDIB = GlobalAlloc(GHND, _captureSize);
     (char*)GlobalLock(_hDIB);
 
 #elif defined(__APPLE__)
@@ -191,7 +191,7 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) { ReInitialize(re
 const ImageData ScreenCapture::WholeDeal() const {
 
     ImageData wholeDeal(_header.begin(), _header.end());
-    std::copy(_pixelData.data(), _pixelData.data() + _bitmapSize, std::back_inserter(wholeDeal));
+    std::copy(_pixelData.data(), _pixelData.data() + _pixelData.size(), std::back_inserter(wholeDeal));
     
     return wholeDeal;
 
@@ -200,12 +200,12 @@ const ImageData ScreenCapture::WholeDeal() const {
 const ImageData& ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
+    
+    //StretchBlt(_memHDC, 0, 0, _destResolution.width, _destResolution.height,
+    //    _srcHDC, 0, 0, _captureResolution.width, _captureResolution.height, SRCCOPY);
 
-    StretchBlt(_memHDC, 0, 0, _destResolution.width, _destResolution.height,
-       _srcHDC, 0, 0, _sourceResolution.width, _sourceResolution.height, SRCCOPY);
-
-    // BitBlt(_memHDC, 0, 0, _destResolution.width, _destResolution.height,
-    //     _srcHDC, 0, 0, SRCCOPY);
+    BitBlt(_memHDC, 0, 0, _captureResolution.width, _captureResolution.height,
+        _srcHDC, 0, 0, SRCCOPY);
 
     GetObject(_hScreen, sizeof BITMAP, &_screenBMP);
 
@@ -218,18 +218,16 @@ const ImageData& ScreenCapture::CaptureScreen() {
 #elif defined(__APPLE__)
 
     _image = CGDisplayCreateImage(CGMainDisplayID());
-    CGContextDrawImage(_context, CGRectMake(0, 0, _destResolution.width, _destResolution.height), _image);
+    CGContextDrawImage(_context, CGRectMake(0, 0, _captureResolution.width, _captureResolution.height), _image);
 
 #elif defined(__linux__)
 
-    //XPutImage(_display, _root, NULL, _image, _sourceResolution.width, int src_y, int dest_x, int dest_y, unsigned int width, unsigned int height);
-    _image = XGetImage(_display, _root, 0, 0, _destResolution.width, _destResolution.height, AllPlanes, ZPixmap);
+    _image = XGetImage(_display, _root, 0, 0, _captureResolution.width, _captureResolution.height, AllPlanes, ZPixmap);
     _pixelData = ImageData(_image->data, _image->data + _bitmapSize);
 
 #endif
 
     return _pixelData;
-
 }
 
 void ScreenCapture::SaveToFile(std::string filename) const {

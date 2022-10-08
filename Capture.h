@@ -54,12 +54,6 @@ struct Resolution {
     bool operator==(const Resolution& other) const {
         return width == other.width && height == other.height;
     }
-
-    bool operator>(const Resolution& other) const {
-
-        // Change to absolute size?
-        return width > other.width && height > other.height;
-    }
 };
 
 constexpr const Resolution RES_144 = { 256, 144 };
@@ -82,19 +76,17 @@ public:
 
 private:
 
-    Resolution _sourceResolution = DefaultResolution;
+    Resolution _captureResolution = DefaultResolution;
     Resolution _destResolution = DefaultResolution;
     BmpFileHeader _header{};
 
     // Buffer holding screen capture 
     ImageData _pixelData{};
 
-    Uint32 _bitmapSize = 0;
+    Uint32 _captureSize = 0, _destSize = 0;
     Uint32 _bitsPerPixel = 32;
 
 #if defined(_WIN32)
-
-    RECT rcClient;
 
     HDC _srcHDC; // Device context of source
     HDC _memHDC; // Device context of destination
@@ -125,12 +117,12 @@ private:
 
 public:
 
-    static inline Resolution DefaultResolution = RES_144;
+    static inline Resolution DefaultResolution = RES_1080;
 
 private:
 
-    void ReInitialize(const Resolution& src, const Resolution& dest);
-    void ReInitialize(const Resolution& res = DefaultResolution);
+    void ReInitialize(const Resolution& captureResolution, const Resolution& destResolution);
+    void ReInitialize(const Resolution& resolution = DefaultResolution);
 
 public:
 
@@ -160,7 +152,7 @@ public:
     const ImageData WholeDeal() const;
     constexpr const size_t TotalSize() const;
 
-    const Resolution& SourceResolution() const;
+    const Resolution& CaptureResolution() const;
     const Resolution& DestResolution() const;
 
     void SaveToFile(std::string filename = "screenshot.bmp") const;

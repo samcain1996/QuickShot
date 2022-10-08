@@ -1,5 +1,6 @@
 #include "Capture.h"
 
+// Supported scaling methods
 enum class ScaleMethod {
     NearestNeighbor,
     Bilinear,
@@ -7,6 +8,7 @@ enum class ScaleMethod {
     Lanczos
 };
 
+// X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
 
 struct Pixel {
@@ -15,13 +17,12 @@ struct Pixel {
     Pixel() { std::memset(rgba, '\0', BMP_COLOR_CHANNELS); }
 	Pixel(char red, char green, char blue, char alpha) : rgba{ red, green, blue, alpha } {}
     Pixel(char channels[BMP_COLOR_CHANNELS]) { std::memcpy(rgba, channels, BMP_COLOR_CHANNELS); }
-
 };
 
 using PixelList = std::vector<Pixel>;
-// using PixelSet = std::unordered_set<Pixel>;
 
 struct PixelMap {
+	
     PixelList pixels;
     Resolution res;
 
@@ -30,58 +31,38 @@ struct PixelMap {
     PixelMap() = delete;
     PixelMap(const Resolution& res) : res(res), pixels(ScreenCapture::CalculateBMPFileSize(res) / BMP_COLOR_CHANNELS) {}
 
+	PixelMap(const PixelMap& other) : res(other.res), pixels(other.pixels) {}
+	PixelMap(PixelMap&& other) noexcept { res = std::move(other.res); pixels = std::move(other.pixels); }
+	
     const Pixel* const GetPixel(const Coordinate& coord) const {
+		// If coordinate is on edge of image, return nullptr
         if (coord.first < 0 || coord.second < 0) { return nullptr; }
         else if (coord.first >= res.width || coord.second >= res.height) { return nullptr; }
 
         return &pixels[coord.second * res.width + coord.first];
     }
 
+	// Convert 1-D index to 2-D coordinate
     const size_t GetPixelIndex(const Coordinate& coord) const {
         return coord.second * res.width + coord.first;
     }
 
+	// Convert 2-D coordinate to 1-D index
 	const Coordinate GetCoordinate(const size_t index) const {
         return { index % res.width , index / res.width };
 	}
-
-    const PixelList GetNeighbors(const Coordinate& coord) const {
-    
-        PixelList neighbors;
-		
-		for (int x = -1; x <= 1; x++) {
-			for (int y = -1; y <= 1; y++) {
-				if (x == 0 && y == 0) { continue; }
-                const Pixel* const pixel = GetPixel({ coord.first + x, coord.second + y });
-				
-				if (pixel != nullptr) { neighbors.push_back(*pixel); }
-			}
-		}
-
-        return neighbors;
-    
-    }
 	
+    // Convert 2-D coordinate to 1-D index
     static const Coordinate GetCoordinate(const Resolution& res, const size_t index) {
         return { index % res.width , index / res.width };
     }
-	
-    static inline const size_t ConvertPixelIdxToByteIdx(const size_t pixelIdx, const size_t channels = BMP_COLOR_CHANNELS) {
-		return pixelIdx * channels;
-    }
 
-    static inline const size_t ConvertByteIdxToPixelIdx(const size_t byteIdx, const size_t channels = BMP_COLOR_CHANNELS) {
-		return byteIdx / channels;
-    }
 };
 
+// Scale between two images in x and y directions
 using ScaleRatio = std::pair<double, double>;
 
-const size_t distance(const Coordinate& a, const Coordinate& b) {
-	return std::sqrt(std::pow(a.first - b.first, 2) + std::pow(a.second - b.second, 2));
-}
-
-class Upscaler {
+class Scaler {
 
 public:
 
@@ -95,9 +76,6 @@ public:
             std::memcpy(upscaled, sourceImage, ScreenCapture::CalculateBMPFileSize(sourceResolution));
             return true;
         }
-		
-		// If source resolution is larger, don't scale (for now)
-        else if (sourceResolution > destResolution) [[unlikely]] { return false; }
 
         const ScaleRatio& ratio = GetScaleRatio(sourceResolution, destResolution);
 		
@@ -117,7 +95,7 @@ public:
 
     }
 
-public:
+private:
 
     // Convert a bitmap to a list of pixels
     const static inline PixelMap BitmapToPixelMap(char* image, const Resolution& res, 
@@ -135,10 +113,11 @@ public:
     
     }
 
+	// Convert a list of pixels to a pre-allocated bitmap
     const static inline void ConvertFromPixelMap(const PixelMap& map, char*& image, 
         const bool isWindows = false) {
 		
-        if (!isWindows) { return; }
+		if (!isWindows) { return; }  // TODO: Implement for Linux and Mac
 
         for (size_t pixelIdx = 0; pixelIdx < map.pixels.size(); pixelIdx++) {
 			const Pixel& pixel = map.pixels[pixelIdx];
@@ -150,6 +129,7 @@ public:
         }
     }
 
+    // Convert a list of pixels to a new bitmap
     static inline char* const ConvertFromPixelMap(const PixelMap& map, const bool isWindows = false) {
 
 		char* image = new char[map.pixels.size() * BMP_COLOR_CHANNELS];
@@ -159,34 +139,45 @@ public:
         return image;
     }
 
+    // Get the ratio in the x-direction between dest and source images
 	static inline const double ScaleRatioX(const Resolution& source, const Resolution& dest) {
 		return (double)dest.width / (double)source.width;
 	}
 	
+    // Get the ratio in the y-direction between dest and source images
     static inline const double ScaleRatioY(const Resolution& source, const Resolution& dest) {
         return (double)dest.height / (double)source.height;
     }
 
+	// Get the ratio in the x and y directions between dest and source images
 	static inline const ScaleRatio GetScaleRatio(const Resolution& source, const Resolution& dest) {
 		return std::make_pair(ScaleRatioX(source, dest), ScaleRatioY(source, dest));
 	}
 	
+	// Upscale using nearest neighbor technique
     const static inline bool NearestNeighbor(char* source, char*& upscaled, const Resolution& src, const Resolution& dest) {
 
         PixelMap sourcePixels = BitmapToPixelMap(source, src, true);
         PixelMap destPixels(dest);
 
-		const ScaleRatio& ratio = GetScaleRatio(src, dest);
+		const auto& [ratioX, ratioY] = GetScaleRatio(src, dest);
 
         for (size_t destPixelIdx = 0; destPixelIdx < destPixels.pixels.size(); ++destPixelIdx) {
-            const Coordinate& coord = destPixels.GetCoordinate(destPixelIdx);
+			
+            // Get the coordinates of current pixel
+            const auto& [destX, destY] = destPixels.GetCoordinate(destPixelIdx);
 
-            const Coordinate& mappedCoord = { coord.first / ratio.first, coord.second / ratio.second };
-			const auto temp = *sourcePixels.GetPixel(mappedCoord);
-            destPixels.pixels[destPixelIdx] = temp;
+			// Find corresponding pixel in source image
+            const Coordinate& mappedCoord = std::make_pair(destX / ratioX, destY / ratioY);
+
+			const Pixel* const pPixel = sourcePixels.GetPixel(mappedCoord);
+
+            // Match the current pixel data with the pixel data of the mapped source pixel
+            destPixels.pixels[destPixelIdx] = *pPixel;
 		
         }
-
+    
+        // Convert to byte pointer
 		upscaled = ConvertFromPixelMap(destPixels, true);
 
         return true;
