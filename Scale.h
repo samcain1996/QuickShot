@@ -75,15 +75,13 @@ private:
     ~Scaler() = delete;
 
     // Convert a bitmap to a list of pixels
-    const static PixelMap BitmapToPixelMap(const char* image, const Resolution& res, 
-        const bool isWindows = false);
+    const static PixelMap BitmapToPixelMap(const char* image, const Resolution& res);
 
 	// Convert a list of pixels to a pre-allocated bitmap
-    const static void ConvertFromPixelMap(const PixelMap& map, char*& image, 
-        const bool isWindows = false);
+    const static void ConvertFromPixelMap(const PixelMap& map, char*& image);
 
     // Convert a list of pixels to a new bitmap
-    static char* const ConvertFromPixelMap(const PixelMap& map, const bool isWindows = false);
+    static char* const ConvertFromPixelMap(const PixelMap& map);
 
     // Get the ratio in the x-direction between dest and source images
 	static const double ScaleRatioX(const Resolution& source, const Resolution& dest);
