@@ -8,30 +8,37 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    Ushort width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
-    Ushort height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
+    int width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
+    int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
     // Source and dest resolutions
     Resolution captureResolution = RES_720;
-    Resolution scaledResolution{width, height};
+    Resolution scaledResolution { width, height };
 
     // Initialize with resolution of 1920x1080
     ScreenCapture screen(captureResolution, scaledResolution);
 
-    // Get the header of bmp with current resolution
+    // Get the header of bmp with scaled resolution
     BmpFileHeader header = screen.ConstructBMPHeader(screen.DestResolution());
 
     // Capture the pixel data of the screen
     ImageData img = screen.CaptureScreen();
-    char* upscaled = new char[ScreenCapture::CalculateBMPFileSize(scaledResolution)];
+    
+    // Save unscaled ScreenCapture to disk
+    screen.SaveToFile("unscaled.bmp");
+	
+    // Scale to target resolution
+    char* upscaled;
+
+    Scaler::scaleMethod = ScaleMethod::NearestNeighbor;  // Currently the only one implemented
     Scaler::Upscale(img.data(), upscaled, captureResolution, scaledResolution);
 
-    std::ofstream imageFile("manual_image_save.bmp", std::ios::binary);
+    // Manual save (scaled image)
+    std::ofstream imageFile("scaled.bmp", std::ios::out);
     imageFile.write(header.data(), header.size());
     imageFile.write(upscaled, ScreenCapture::CalculateBMPFileSize(scaledResolution));
 
-    // Save ScreenCapture to disk
-    screen.SaveToFile("TestScreenshot.bmp");
+    delete[] upscaled;  // Free memory
 
     return 0;
 }
