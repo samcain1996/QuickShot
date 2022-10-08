@@ -27,16 +27,16 @@ int main(int argc, char** argv) {
     ImageData img = screen.CaptureScreen();
     
     // Save unscaled ScreenCapture to disk
-    screen.SaveToFile("unscaled.bmp");
+    screen.SaveToFile("autoSave.bmp");
 	
     // Scale to target resolution
     char* upscaled;
 
     Scaler::scaleMethod = ScaleMethod::NearestNeighbor;  // Currently the only one implemented
-    Scaler::Upscale(img.data(), upscaled, captureResolution, higherResolution);
+    Scaler::Scale(img.data(), upscaled, captureResolution, higherResolution);
 
     // Manual save (scaled image)
-    std::ofstream imageFile("scaled.bmp", std::ios::out);
+    std::ofstream imageFile("manualSave.bmp", std::ios::out);
     imageFile.write(header.data(), header.size());
     imageFile.write(upscaled, ScreenCapture::CalculateBMPFileSize(higherResolution));
 

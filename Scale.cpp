@@ -29,31 +29,33 @@ const Coordinate PixelMap::GetCoordinate(const Resolution& res, const size_t ind
 /* --------------------- */
 
 /* ----- Scaler ----- */
-const bool Scaler::Upscale(char* sourceImage, char*& upscaled,
+const bool Scaler::Scale(const char* sourceImage, char*& scaled,
     const Resolution& sourceResolution, const Resolution& destResolution) {
+
     // If the resolutions are the same, don't scale
     if (sourceResolution == destResolution) [[unlikely]] {
-        std::memcpy(upscaled, sourceImage, ScreenCapture::CalculateBMPFileSize(sourceResolution));
+        std::memcpy(scaled, sourceImage, ScreenCapture::CalculateBMPFileSize(sourceResolution));
         return true;
     }
+    
     const ScaleRatio& ratio = GetScaleRatio(sourceResolution, destResolution);
 	
 	// Scale based upon the scale method
     switch (scaleMethod) {
 	[[likely]] case ScaleMethod::NearestNeighbor:
-		return NearestNeighbor(sourceImage, upscaled, sourceResolution, destResolution);
+		return NearestNeighbor(sourceImage, scaled, sourceResolution, destResolution);
 	case ScaleMethod::Bilinear:
-		return Bilinear(sourceImage, upscaled, ratio);
+		return Bilinear(sourceImage, scaled, ratio);
 	case ScaleMethod::Bicubic:
-		return Bicubic(sourceImage, upscaled, ratio);
+		return Bicubic(sourceImage, scaled, ratio);
 	case ScaleMethod::Lanczos:
-		return Lanczos(sourceImage, upscaled, ratio);
+		return Lanczos(sourceImage, scaled, ratio);
     default:
         return false;
     }
 }
 // Convert a bitmap to a list of pixels
-const PixelMap Scaler::BitmapToPixelMap(char* image, const Resolution& res, const bool isWindows) {
+const PixelMap Scaler::BitmapToPixelMap(const char* image, const Resolution& res, const bool isWindows) {
     
     if (!isWindows) { return PixelMap(res); }
     PixelMap pixelMap(res);
@@ -97,7 +99,7 @@ const ScaleRatio Scaler::GetScaleRatio(const Resolution& source, const Resolutio
 }
 
 // Upscale using nearest neighbor technique
-const bool Scaler::NearestNeighbor(char* source, char*& upscaled, const Resolution& src, const Resolution& dest) {
+const bool Scaler::NearestNeighbor(const char* source, char*& upscaled, const Resolution& src, const Resolution& dest) {
     PixelMap sourcePixels = BitmapToPixelMap(source, src, true);
     PixelMap destPixels(dest);
 	const auto& [ratioX, ratioY] = GetScaleRatio(src, dest);
@@ -105,9 +107,11 @@ const bool Scaler::NearestNeighbor(char* source, char*& upscaled, const Resoluti
 		
         // Get the coordinates of current pixel
         const auto& [destX, destY] = destPixels.GetCoordinate(destPixelIdx);
+        
 		// Find corresponding pixel in source image
         const Coordinate& mappedCoord = std::make_pair(destX / ratioX, destY / ratioY);
 		const Pixel* const pPixel = sourcePixels.GetPixel(mappedCoord);
+
         // Match the current pixel data with the pixel data of the mapped source pixel
         destPixels.pixels[destPixelIdx] = *pPixel;
 	

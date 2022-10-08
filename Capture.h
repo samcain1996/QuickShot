@@ -56,11 +56,20 @@ struct Resolution {
     }
 };
 
+// Low definition
 constexpr const Resolution RES_144 = { 256, 144 };
+constexpr const Resolution RES_DEBUG = { 256, 144 };
+
+// Standard definition
 constexpr const Resolution RES_480 = { 640, 480 };
+
+// High definition
 constexpr const Resolution RES_720 = { 1280, 720 };
 constexpr const Resolution RES_1080 = { 1920, 1080 };
+
 constexpr const Resolution RES_1440 = { 2560, 1440 };
+constexpr const Resolution RES_2K = { 2560, 1440 };
+
 constexpr const Resolution RES_4K = { 3840, 2160 };
 
 /*--------------------------------------------------*/
@@ -78,12 +87,12 @@ private:
 
     Resolution _captureResolution = DefaultResolution;
     Resolution _destResolution = DefaultResolution;
-    BmpFileHeader _header{};
+    BmpFileHeader _header {};
 
     // Buffer holding screen capture 
     ImageData _pixelData{};
 
-    Uint32 _captureSize = 0, _destSize = 0;
+    Uint32 _captureSize = 0;
     Uint32 _bitsPerPixel = 32;
 
 #if defined(_WIN32)

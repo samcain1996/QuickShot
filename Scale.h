@@ -9,8 +9,8 @@ struct Pixel {
     char rgba[BMP_COLOR_CHANNELS];
 
     Pixel() { std::memset(rgba, '\0', BMP_COLOR_CHANNELS); }
-	Pixel(char red, char green, char blue, char alpha) : rgba{ red, green, blue, alpha } {}
-    Pixel(char channels[BMP_COLOR_CHANNELS]) { std::memcpy(rgba, channels, BMP_COLOR_CHANNELS); }
+	Pixel(const char red, const char green, const char blue, const char alpha) : rgba{ red, green, blue, alpha } {}
+    Pixel(const char channels[BMP_COLOR_CHANNELS]) { std::memcpy(rgba, channels, BMP_COLOR_CHANNELS); }
 
    Pixel(const Pixel& other) { std::memcpy(rgba, other.rgba, BMP_COLOR_CHANNELS); };
    Pixel(Pixel&& other) {
@@ -65,13 +65,17 @@ public:
 
     static inline ScaleMethod scaleMethod = ScaleMethod::NearestNeighbor;
 
-    static const bool Upscale(char* sourceImage, char*& upscaled,
+    static const bool Scale(const char* sourceImage, char*& scaled,
         const Resolution& sourceResolution, const Resolution& destResolution);
 
 private:
 
+    // Class shouldn't be instantiated
+    Scaler() = delete;
+    ~Scaler() = delete;
+
     // Convert a bitmap to a list of pixels
-    const static PixelMap BitmapToPixelMap(char* image, const Resolution& res, 
+    const static PixelMap BitmapToPixelMap(const char* image, const Resolution& res, 
         const bool isWindows = false);
 
 	// Convert a list of pixels to a pre-allocated bitmap
@@ -88,8 +92,11 @@ private:
     static const double ScaleRatioY(const Resolution& source, const Resolution& dest);
 	// Get the ratio in the x and y directions between dest and source images
 	static const ScaleRatio GetScaleRatio(const Resolution& source, const Resolution& dest);
+
+    /* ----- Scaling Function ----- */
+
 	// Upscale using nearest neighbor technique
-    const static bool NearestNeighbor(char* source, char*& upscaled, const Resolution& src, const Resolution& dest);
+    const static bool NearestNeighbor(const char* source, char*& upscaled, const Resolution& src, const Resolution& dest);
 	
     // TODO: Implement other scaling methods
     const static bool Bilinear(const char* const source, char* upscaled, const ScaleRatio& scaleRatio);

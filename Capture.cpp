@@ -152,9 +152,8 @@ void ScreenCapture::ReInitialize(const Resolution& captureResolution, const Reso
     _destResolution = destResolution;
 
     _captureSize = CalculateBMPFileSize(_captureResolution, _bitsPerPixel);
-    _destSize = CalculateBMPFileSize(_destResolution, _bitsPerPixel);
 	
-    _header = ConstructBMPHeader(_captureResolution, _bitsPerPixel);
+    _header = ConstructBMPHeader(_destResolution, _bitsPerPixel);
 
     _pixelData = ImageData(_captureSize, '\0');
 
@@ -191,8 +190,11 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) { ReInitialize(re
 const ImageData ScreenCapture::WholeDeal() const {
 
     ImageData wholeDeal(_header.begin(), _header.end());
-    std::copy(_pixelData.data(), _pixelData.data() + _pixelData.size(), std::back_inserter(wholeDeal));
-    
+    PixelData destPixelData;
+    Scaler::Scale(_pixelData.data(), destPixelData, _captureResolution, _destResolution);
+
+    std::copy(destPixelData, destPixelData + CalculateBMPFileSize(_destResolution), std::back_inserter(wholeDeal));
+
     return wholeDeal;
 
 }
@@ -238,7 +240,8 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     }
 
 	// Save image to disk
-    std::ofstream(filename, std::ios::binary).write(WholeDeal().data(), TotalSize());
+    const ImageData entireImage = WholeDeal();
+    std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
 
 }
 
