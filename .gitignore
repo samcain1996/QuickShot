@@ -34,3 +34,5 @@
 build/*
 *.bmp
 bench.cpp
+*.out
+.vscode/*

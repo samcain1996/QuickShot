@@ -223,7 +223,7 @@ const ImageData& ScreenCapture::CaptureScreen() {
 #elif defined(__linux__)
 
     _image = XGetImage(_display, _root, 0, 0, _captureResolution.width, _captureResolution.height, AllPlanes, ZPixmap);
-    _pixelData = ImageData(_image->data, _image->data + _bitmapSize);
+    _pixelData = ImageData(_image->data, _image->data + _captureSize);
 
 #endif
 

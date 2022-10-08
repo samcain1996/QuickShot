@@ -23,7 +23,7 @@ endif()
 
 
 if (DEMO)
-add_executable(QuickShotDemo Capture.cpp Demo.cpp)
+add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
 endif()
 
 add_library(QuickShot SHARED Capture.cpp)
