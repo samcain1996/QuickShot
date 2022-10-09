@@ -5,10 +5,6 @@ Resolution ScreenCapture::DefaultResolution = RES_1080;
 Resolution ScreenCapture::GetMaxSupportedResolution() {
 
     static Resolution MAX_SUPPORTED_RES = [this]() {
-                _display = XOpenDisplay(nullptr);
-        _root = DefaultRootWindow(_display);
-
-        XGetWindowAttributes(_display, _root, &_attributes);
 
 #if defined(_WIN32)
 		
@@ -16,6 +12,11 @@ Resolution ScreenCapture::GetMaxSupportedResolution() {
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
+        static Resolution MAX_SUPPORTED_RES = [this]() {
+            _display = XOpenDisplay(nullptr);
+            _root = DefaultRootWindow(_display);
+
+            XGetWindowAttributes(_display, _root, &_attributes);
 
         return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
 		
@@ -142,8 +143,8 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
-        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    _context = CGBitmapContextCreate(_pixelData.data(), ( _captureArea.right - _captureArea.left ), ( _captureArea.bottom - _captureArea.top ),
+        8, (_captureArea.right - _captureArea.left) * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
