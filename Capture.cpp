@@ -143,8 +143,8 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    _context = CGBitmapContextCreate(_pixelData.data(), ( _captureArea.right - _captureArea.left ), ( _captureArea.bottom - _captureArea.top ),
-        8, (_captureArea.right - _captureArea.left) * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height,
+        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
@@ -178,8 +178,9 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__APPLE__)
 
-    _image = CGDisplayCreateImage(CGMainDisplayID());
-    CGContextDrawImage(_context, CGRectMake(0, 0, _resolution.width, _resolution.height), _image);
+	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
+    CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (int)(_captureArea.bottom - _resolution.height),
+        _captureArea.right - _captureArea.left, _captureArea.bottom - _captureArea.top), _image);
 
 #elif defined(__linux__)
 
