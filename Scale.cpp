@@ -78,8 +78,10 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
 const PixelMap Scaler::BitmapToPixelMap(const PixelData& image, const Resolution& res) {
     
     PixelMap pixelMap(res);
-    for (size_t pixelIdx = 0; pixelIdx < pixelMap.ImageSize(); pixelIdx += BMP_COLOR_CHANNELS) {
-        pixelMap.pixels[pixelIdx / BMP_COLOR_CHANNELS] = Pixel(&image.data()[pixelIdx]);
+
+    for (size_t pixelIdx = 0; pixelIdx < pixelMap.pixels.size(); ++pixelIdx) {
+        const size_t imageOffset = pixelIdx * BMP_COLOR_CHANNELS;
+        pixelMap.pixels[pixelIdx] = Pixel(&image.data()[imageOffset]);
     }
     return pixelMap;
 
@@ -87,8 +89,7 @@ const PixelMap Scaler::BitmapToPixelMap(const PixelData& image, const Resolution
 
 // Convert a list of pixels to a new bitmap
 PixelData Scaler::ConvertFromPixelMap(const PixelMap& map) {
-	
-	PixelData image(map.ImageSize());
+	PixelData image(map.pixels.size() * BMP_COLOR_CHANNELS);
 
     for (size_t pixelIdx = 0; pixelIdx < map.pixels.size(); pixelIdx++) {
         const Pixel& pixel = map.pixels[pixelIdx];

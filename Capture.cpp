@@ -5,6 +5,10 @@ Resolution ScreenCapture::DefaultResolution = RES_1080;
 Resolution ScreenCapture::GetMaxSupportedResolution() {
 
     static Resolution MAX_SUPPORTED_RES = [this]() {
+                _display = XOpenDisplay(nullptr);
+        _root = DefaultRootWindow(_display);
+
+        XGetWindowAttributes(_display, _root, &_attributes);
 
 #if defined(_WIN32)
 		
@@ -12,11 +16,7 @@ Resolution ScreenCapture::GetMaxSupportedResolution() {
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
-		
-        _display = XOpenDisplay(nullptr);
-        _root = DefaultRootWindow(_display);
 
-        XGetWindowAttributes(_display, _root, &_attributes);
         return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
 		
 #elif defined(__APPLE__)
@@ -49,6 +49,13 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESO
 	SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
 
     _hDIB = NULL;
+
+#elif defined(__linux__)
+
+            _display = XOpenDisplay(nullptr);
+        _root = DefaultRootWindow(_display);
+
+        XGetWindowAttributes(_display, _root, &_attributes);
 
 #elif defined(__APPLE__)
     
@@ -106,10 +113,13 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 
     _resolution = std::min<Resolution>(MAX_RESOLUTION, _resolution);
 
-    _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
+    _captureSize = CalculateBMPFileSize({ (Ushort)(_captureArea.right - _captureArea.left), (Ushort)(_captureArea.bottom - _captureArea.top) }, 
+    _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
     _pixelData = PixelData(_captureSize, '\0');
+
+
 
 #if defined(_WIN32)
 
@@ -172,13 +182,16 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__linux__)
 
+    const Resolution captureAreaRes { (Ushort)(_captureArea.right - _captureArea.left), (Ushort)(_captureArea.bottom - _captureArea.top) };
+
     _image = XGetImage(_display, _root, 
-        MAX_RESOLUTION.width -(_captureArea.right - _captureArea.left),
+        MAX_RESOLUTION.width - (_captureArea.right - _captureArea.left),
         MAX_RESOLUTION.height - (_captureArea.bottom - _captureArea.top), 
-        _resolution.width, _resolution.height, AllPlanes, ZPixmap);   
+        (_captureArea.right - _captureArea.left), (_captureArea.bottom - _captureArea.top), 
+        AllPlanes, ZPixmap);   
 
     _pixelData = PixelData(_image->data, _image->data + _captureSize);
-
+    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
 
 #endif
 

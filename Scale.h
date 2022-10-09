@@ -27,7 +27,7 @@ struct PixelMap {
     PixelList pixels;
     Resolution res;
 
-	const size_t ImageSize() const { return pixels.size() * BMP_COLOR_CHANNELS; }
+	const size_t ImageSize() const { ((res.width * 32 + 31) / 32) * BMP_COLOR_CHANNELS * res.height; }
 	
     PixelMap() = delete;
     PixelMap(const Resolution& res);
