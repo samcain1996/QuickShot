@@ -33,3 +33,6 @@
 
 build/*
 *.bmp
+*.json
+.vscode/*
+
