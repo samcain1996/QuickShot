@@ -1,5 +1,6 @@
 #include <iostream>
-#include "Scale.h"
+#include <string>
+#include "Capture.h"
 
 int main(int argc, char** argv) {
 
@@ -12,30 +13,34 @@ int main(int argc, char** argv) {
     int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
     // Source and dest resolutions
-    Resolution captureResolution = RES_1080;
+    Resolution resolution = { width, height };
 
-    Resolution higherResolution = RES_4K;
-    Resolution lowerResolution = RES_480;
-
-    Scaler::scaleMethod = ScaleMethod::NearestNeighbor;  // Currently the only one implemented
+    Resolution highResolution = RES_4K;
+    Resolution lowResolution = RES_480;
 
     // Initialize with resolution of 1920x1080
-    ScreenCapture screen(captureResolution);
+    ScreenCapture screen(resolution);
 
     // Capture the pixel data of the screen
     screen.CaptureScreen();
-    
-    // Save unscaled ScreenCapture to disk
-    screen.SaveToFile("unscaled.bmp");
-    
-    screen.ReSize(captureResolution, higherResolution);
-    screen.CaptureScreen();
-    // Save unscaled ScreenCapture to disk
-    screen.SaveToFile("upscaled.bmp");
 
-    screen.ReSize(captureResolution, lowerResolution);
+    std::string filename = std::to_string(resolution.width) + "x" + std::to_string(resolution.height) + ".bmp";
+    
+    // Save unscaled ScreenCapture to disk
+    screen.SaveToFile(filename);
+    
+    screen.Resize(highResolution);
+    filename = std::to_string(highResolution.width) + "x" + std::to_string(highResolution.height) + ".bmp";
+	
     screen.CaptureScreen();
-    screen.SaveToFile("downscaled.bmp");
+    // Save unscaled ScreenCapture to disk
+    screen.SaveToFile(filename);
+
+    screen.Resize(lowResolution);
+    filename = std::to_string(lowResolution.width) + "x" + std::to_string(lowResolution.height) + ".bmp";
+	
+    screen.CaptureScreen();
+    screen.SaveToFile(filename);
 
     return 0;
 }

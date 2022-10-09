@@ -12,10 +12,12 @@
 
 #elif defined(__APPLE__)
 
+#include "Scale.h"
 #include <ApplicationServices/ApplicationServices.h>
 
 #elif defined(__linux__)
 
+#include "Scale.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
@@ -73,6 +75,13 @@ constexpr const Resolution RES_4K = { 3840, 2160 };
 
 /*--------------------------------------------------*/
 
+struct ScreenArea {
+    size_t left = 0;
+    size_t right = 0;
+    size_t top = 0;
+	size_t bottom = 0;
+};
+
 class ScreenCapture {
 
 public:
@@ -84,12 +93,14 @@ public:
 
 private:
 
-    Resolution _captureResolution = DefaultResolution;
-    Resolution _destResolution = DefaultResolution;
-    BmpFileHeader _captureHeader {};
+    Resolution _resolution = DefaultResolution;
+    ScreenArea _captureArea;
+	
+	// Header needed to create a valid bitmap file
+    BmpFileHeader _header {};
 
     // Buffer holding screen capture 
-    PixelData _pixelData{};
+    PixelData _pixelData {};
 
     Uint32 _captureSize = 0;
     Uint32 _bitsPerPixel = 32;
@@ -99,7 +110,7 @@ private:
     HDC _srcHDC; // Device context of source
     HDC _memHDC; // Device context of destination
 
-    // Bitmap data
+    // Windows bitmap data
     HBITMAP _hScreen;
     BITMAP _screenBMP;
     HANDLE _hDIB;
@@ -115,7 +126,7 @@ private:
 #elif defined (__linux__) 
 
     Display* _display = nullptr;
-    Window _root{};
+    Window _root {};
     XWindowAttributes _attributes = { 0 };
     XImage* _image = nullptr;
 
@@ -125,12 +136,7 @@ private:
 
 public:
 
-    static inline Resolution DefaultResolution = RES_1080;
-
-private:
-
-    void ReInitialize(const Resolution& captureResolution, const Resolution& destResolution);
-    void ReInitialize(const Resolution& resolution = DefaultResolution);
+    static Resolution DefaultResolution;
 
 public:
 
@@ -140,10 +146,8 @@ public:
     ScreenCapture(ScreenCapture&&) = delete;
 
     ScreenCapture(const Resolution& res = DefaultResolution);
-    ScreenCapture(const Resolution& src, const Resolution& dest);
 
     ScreenCapture(const Ushort width, const Ushort height);
-    ScreenCapture(const Ushort srcWidth, const Ushort srcHeight, const Ushort destWidth, const Ushort destHeight);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
     ScreenCapture& operator=(ScreenCapture&&) = delete;
@@ -152,16 +156,12 @@ public:
 
     /* ------------------------------------------------- */
 
-    void ReSize(const Resolution& res = DefaultResolution);
-    void ReSize(const Resolution& sourceRes, const Resolution& destRes);
-
+    void Resize(const Resolution& res = DefaultResolution);
     const PixelData& CaptureScreen();
 
     const PixelData WholeDeal() const;
     constexpr const size_t TotalSize() const;
-
-    const Resolution& CaptureResolution() const;
-    const Resolution& DestResolution() const;
+    const Resolution& GetResolution() const;
 
     void SaveToFile(std::string filename = "screenshot.bmp") const;
 };
