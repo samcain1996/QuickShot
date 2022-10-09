@@ -13,6 +13,9 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
     _root = DefaultRootWindow(_display);
 
     XGetWindowAttributes(_display, _root, &_attributes);
+
+    _captureArea.right = _attributes.width;
+    _captureArea.bottom = _attributes.height;
     
 #endif
 
@@ -87,6 +90,8 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 
     _resolution = resolution;
 
+    _resolution = std::min(MAX_RESOLUTION(), _resolution);
+
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
@@ -153,16 +158,13 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__linux__)
 
-    const Resolution captureRes = std::min(MAX_RESOLUTION(), _resolution);  // BUG: If MAX_RESOLUTION() is second, the program crashes lol
+    _image = XGetImage(_display, _root, 
+        MAX_RESOLUTION().width -(_captureArea.right - _captureArea.left),
+        MAX_RESOLUTION().height - (_captureArea.bottom - _captureArea.top), 
+        _resolution.width, _resolution.height, AllPlanes, ZPixmap);   
 
-    _image = XGetImage(_display, _root, 0, 0, captureRes.width, captureRes.height, AllPlanes, ZPixmap);
     _pixelData = PixelData(_image->data, _image->data + _captureSize);
 
-    // if (needsScaling) {
-        
-        
-    //    Scaler::Scale(_pixelData, _resolution, captureRes);
-    // }
 
 #endif
 
