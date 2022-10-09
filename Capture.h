@@ -1,15 +1,12 @@
 #pragma once
 
-#if defined(__APPLE__) || defined(__linux__)
-#include <functional>
 #include "Scale.h"
-#endif
 
 class ScreenCapture {
 
-    const Resolution MAX_RESOLUTION() const; 
-
 private:
+
+    const Resolution MAX_RESOLUTION;
 
     Resolution _resolution = DefaultResolution;
     ScreenArea _captureArea;
@@ -48,8 +45,6 @@ private:
     XWindowAttributes _attributes = { 0 };
     XImage* _image = nullptr;
 
-    constexpr const Resolution MAX_RESOLUTION() { return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height}; }
-
 #endif
 
     
@@ -57,6 +52,10 @@ private:
 public:
 
     static Resolution DefaultResolution;
+
+private:
+
+    Resolution GetMaxSupportedResolution();
 
 public:
 

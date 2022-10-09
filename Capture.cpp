@@ -2,27 +2,47 @@
 
 Resolution ScreenCapture::DefaultResolution = RES_1080;
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
+Resolution ScreenCapture::GetMaxSupportedResolution() {
+
+    static Resolution MAX_SUPPORTED_RES = [this]() {
+
+#if defined(_WIN32)
+		
+        SetProcessDPIAware();  // Needed to ensure correct resolution
+        return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
+		
+#elif defined(__linux__)
+		
+        _display = XOpenDisplay(nullptr);
+        _root = DefaultRootWindow(_display);
+
+        XGetWindowAttributes(_display, _root, &_attributes);
+        return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
+		
+#elif defined(__APPLE__)
+
+        const auto mainDisplayId = CGMainDisplayID();
+        return Resolution{ (Ushort)CGDisplayPixelsWide(mainDisplayId), (Ushort)CGDisplayPixelsHigh(mainDisplayId) };
+		
+#endif
+		
+    } ();
+	
+    return MAX_SUPPORTED_RES;
+	
+}
+
+ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESOLUTION(GetMaxSupportedResolution()) {
 
     _resolution.width = width;
     _resolution.height = height;
 
-#if defined(__linux__)
-
-    _display = XOpenDisplay(nullptr);
-    _root = DefaultRootWindow(_display);
-
-    XGetWindowAttributes(_display, _root, &_attributes);
-
-    _captureArea.right = _attributes.width;
-    _captureArea.bottom = _attributes.height;
-    
-#endif
+    // Capture the entire screen by default	
+    _captureArea.right = MAX_RESOLUTION.width;
+    _captureArea.bottom = MAX_RESOLUTION.height;
 
 #if defined(_WIN32)
 	
-    SetProcessDPIAware();  // Needed to ensure correct resolution
-
     _srcHDC = GetDC(GetDesktopWindow());      // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
@@ -30,13 +50,7 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
     _hDIB = NULL;
 
-	// Capture the entire screen by default
-    _captureArea.right = GetSystemMetrics(SM_CXSCREEN);
-    _captureArea.bottom = GetSystemMetrics(SM_CYSCREEN);
-
-#endif
-
-#if defined(__APPLE__)
+#elif defined(__APPLE__)
     
     _colorspace = CGColorSpaceCreateDeviceRGB();
     
@@ -90,7 +104,7 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 
     _resolution = resolution;
 
-    _resolution = std::min(MAX_RESOLUTION(), _resolution);
+    _resolution = std::min<Resolution>(MAX_RESOLUTION, _resolution);
 
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
@@ -159,8 +173,8 @@ const PixelData& ScreenCapture::CaptureScreen() {
 #elif defined(__linux__)
 
     _image = XGetImage(_display, _root, 
-        MAX_RESOLUTION().width -(_captureArea.right - _captureArea.left),
-        MAX_RESOLUTION().height - (_captureArea.bottom - _captureArea.top), 
+        MAX_RESOLUTION.width -(_captureArea.right - _captureArea.left),
+        MAX_RESOLUTION.height - (_captureArea.bottom - _captureArea.top), 
         _resolution.width, _resolution.height, AllPlanes, ZPixmap);   
 
     _pixelData = PixelData(_image->data, _image->data + _captureSize);

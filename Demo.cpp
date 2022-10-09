@@ -20,7 +20,9 @@ int main(int argc, char** argv) {
 
     // Initialize with resolution of 1920x1080
     ScreenCapture screen(resolution);
-
+    ScreenCapture highResScreen(highResolution);
+    ScreenCapture lowResScreen(lowResolution);
+	
     // Capture the pixel data of the screen
     screen.CaptureScreen();
 
@@ -30,17 +32,17 @@ int main(int argc, char** argv) {
     screen.SaveToFile(filename);
     std::cout << "Saved " << filename << " to disk\n";
     
-    screen.Resize(highResolution);
+    //screen.Resize(highResolution);
     filename = std::to_string(highResolution.width) + "x" + std::to_string(highResolution.height) + ".bmp";
 	
-    screen.CaptureScreen();
+    highResScreen.CaptureScreen();
     // Save unscaled ScreenCapture to disk
     screen.SaveToFile(filename);
     std::cout << "Saved " << filename << " to disk\n";
-    screen.Resize(lowResolution);
+    //screen.Resize(lowResolution);
     filename = std::to_string(lowResolution.width) + "x" + std::to_string(lowResolution.height) + ".bmp";
 	
-    screen.CaptureScreen();
+    lowResScreen.CaptureScreen();
     screen.SaveToFile(filename);
         std::cout << "Saved " << filename << " to disk\n";
 
