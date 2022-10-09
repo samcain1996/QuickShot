@@ -1,21 +1,11 @@
 #include "Capture.h"
 
-const Resolution& ScreenCapture::ImageResolution() const { return _resolution; }
-
-constexpr const Uint32 ScreenCapture::CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel) {
-    return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
-}
-
-ScreenCapture::ScreenCapture(const Resolution& res) : ScreenCapture(res.width, res.height) {}
+Resolution ScreenCapture::DefaultResolution = RES_1080;
 
 ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
-    _resolution.width  = width;
+    _resolution.width = width;
     _resolution.height = height;
-
-    _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
-
-    _pixelData.reserve(_bitmapSize); // TODO: Does this compound?
 
 #if defined(__linux__)
 
@@ -27,29 +17,33 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 #endif
 
 #if defined(_WIN32)
+	
+    SetProcessDPIAware();  // Needed to ensure correct resolution
 
-    _srcHDC = GetDC(GetDesktopWindow());  // Get the device context of the monitor [1]
+    _srcHDC = GetDC(GetDesktopWindow());      // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
-    // Not likely that source and destination are same resolution.
-    // Tell system how to stretch the image
-    SetStretchBltMode(_memHDC, HALFTONE);
+	SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
 
     _hDIB = NULL;
+
+	// Capture the entire screen by default
+    _captureArea.right = GetSystemMetrics(SM_CXSCREEN);
+    _captureArea.bottom = GetSystemMetrics(SM_CYSCREEN);
 
 #endif
 
 #if defined(__APPLE__)
     
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
-        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
-
+    
 #endif
 
-    ReInitialize(_resolution);
+    Resize(_resolution);
 
 }
+
+ScreenCapture::ScreenCapture(const Resolution& res) : ScreenCapture(res.width, res.height) {}
 
 ScreenCapture::~ScreenCapture() {
 
@@ -76,82 +70,29 @@ ScreenCapture::~ScreenCapture() {
 
 #endif
 
-
 }
 
-ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.ImageResolution()) {}
 
-constexpr const BmpFileHeader ScreenCapture::BaseHeader() {
+ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.GetResolution()) {}
 
-    BmpFileHeader baseHeader {};  // TODO: See how to init all vals to 0
+const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
-    // Identifies file as bmp
-    baseHeader[0] = 0x42;
-    baseHeader[1] = 0x4D;
 
-    baseHeader[10] = 0x36;  // Start of pixel data
-
-    // Start of info related to pixel data
-    baseHeader[BMP_FILE_HEADER_SIZE] = 0x28;
-
-    baseHeader[BMP_FILE_HEADER_SIZE+12] = 1;
-
-    return baseHeader;
-}
-
-const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
-        const Ushort bitsPerPixel) {
-
-    BmpFileHeader header = BaseHeader();
-
-    // Encode file size
-    EncodeAsByte(&header[2], resolution.width * resolution.height * 
-        BMP_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
-
-    // Encode pixels wide
-    EncodeAsByte(&header[4 + BMP_FILE_HEADER_SIZE], resolution.width);
-
-#if !defined(_WIN32)  // Window bitmaps are stored upside down
-
-    resolution.height = -resolution.height;
-
-#endif
-
-    // Encode pixels high
-    EncodeAsByte(&header[8 + BMP_FILE_HEADER_SIZE], resolution.height);
-
-#if !defined(_WIN32)  // Window bitmaps are stored upside down
-
-    std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
-        [](char& b) { if ( b == '\0' ) { b = (char)255; } });
-
-#endif
-
-    header[BMP_FILE_HEADER_SIZE + 14] = bitsPerPixel;
-	
-    return header;
-	
-}
 
 constexpr const size_t ScreenCapture::TotalSize() const {
-    return _bitmapSize + BMP_HEADER_SIZE;
+    return _captureSize + BMP_HEADER_SIZE;
 }
 
-void ScreenCapture::ReSize(const Resolution& resolution) {
-    ReInitialize(resolution);
-}
-
-void ScreenCapture::ReInitialize(const Resolution& resolution) {
+void ScreenCapture::Resize(const Resolution& resolution) {
 
     _resolution = resolution;
 
-    _bitmapSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
-
+    _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
-#if defined(_WIN32)
+    _pixelData = PixelData(_captureSize, '\0');
 
-    GetClientRect(GetDesktopWindow(), &rcClient);
+#if defined(_WIN32)
 
     // Recreate bitmap with new dimensions
     DeleteObject(_hScreen);
@@ -163,34 +104,42 @@ void ScreenCapture::ReInitialize(const Resolution& resolution) {
     GlobalUnlock(_hDIB);
     GlobalFree(_hDIB);
 
-    _hDIB = GlobalAlloc(GHND, _bitmapSize);
+    _hDIB = GlobalAlloc(GHND, _captureSize);
     (char*)GlobalLock(_hDIB);
 
+#elif defined(__APPLE__)
+
+    // Ok to call on null objects
+    CGImageRelease(_image);
+    CGContextRelease(_context); 
+
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
+        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+
 #endif
+
+}
+
+const PixelData ScreenCapture::WholeDeal() const {
 	
-}
+    PixelData wholeDeal(_header.begin(), _header.end());
+	std::copy(_pixelData.begin(), _pixelData.end(), std::back_inserter(wholeDeal));
 
-const ImageData ScreenCapture::WholeDeal() const {
-
-    ImageData wholeDeal(_header.begin(), _header.end());
-    std::copy(_pixelData.data(), _pixelData.data() + _bitmapSize, std::back_inserter(wholeDeal));
-    
     return wholeDeal;
-
 }
 
-const ImageData ScreenCapture::CaptureScreen() {
+const PixelData& ScreenCapture::CaptureScreen() {
 
 #if defined(_WIN32)
 
-    //StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
-    //    _srcHDC, 0, 0, rcClient.right, rcClient.bottom, SRCCOPY);
-
-    BitBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
-        _srcHDC, 0, 0, SRCCOPY);
+    // Resize to target resolution
+    StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
+        _srcHDC, 0, 0, _captureArea.right - _captureArea.left, 
+        _captureArea.bottom - _captureArea.top, SRCCOPY);
 
     GetObject(_hScreen, sizeof BITMAP, &_screenBMP);
 
+    // Store screen data in _pixelData
     // Should be legal because BITMAPINFO has no padding, all its data members are aligned.
     GetDIBits(_memHDC, _hScreen, 0,
         (UINT)_screenBMP.bmHeight,
@@ -204,13 +153,20 @@ const ImageData ScreenCapture::CaptureScreen() {
 
 #elif defined(__linux__)
 
-    _image = XGetImage(_display, _root, 0, 0, _resolution.width, _resolution.height, AllPlanes, ZPixmap);
-    _pixelData = ImageData(_image->data, _image->data + _bitmapSize);
+    const Resolution captureRes = std::min(MAX_RESOLUTION(), _resolution);  // BUG: If MAX_RESOLUTION() is second, the program crashes lol
+
+    _image = XGetImage(_display, _root, 0, 0, captureRes.width, captureRes.height, AllPlanes, ZPixmap);
+    _pixelData = PixelData(_image->data, _image->data + _captureSize);
+
+    // if (needsScaling) {
+        
+        
+    //    Scaler::Scale(_pixelData, _resolution, captureRes);
+    // }
 
 #endif
 
     return _pixelData;
-
 }
 
 void ScreenCapture::SaveToFile(std::string filename) const {
@@ -221,7 +177,8 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     }
 
 	// Save image to disk
-    std::ofstream(filename, std::ios::binary).write(WholeDeal().data(), TotalSize());
+    const PixelData entireImage = WholeDeal();
+    std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
 
 }
 
