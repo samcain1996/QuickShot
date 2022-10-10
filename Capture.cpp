@@ -1,11 +1,9 @@
 #include "Capture.h"
 #include <functional>
 
-const Resolution ScreenCapture::NATIVE_RESOLUTION = ScreenCapture::GetNativeResolution();
+Resolution ScreenCapture::DefaultResolution = ScreenCapture::NativeResolution();
 
-Resolution ScreenCapture::DefaultResolution = ScreenCapture::NATIVE_RESOLUTION;
-
-Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
+Resolution ScreenCapture::NativeResolution(const bool Reinit) {
     
     static auto retrieveRes = []() {
 		
@@ -28,7 +26,7 @@ Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
 
     };
 	
-    static auto NATIVE_RESOLUTION = retrieveRes();
+    static Resolution NATIVE_RESOLUTION = retrieveRes();
 
     if (Reinit) { retrieveRes(); }
 
@@ -42,8 +40,8 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
     _resolution.height = height;
 
     // Capture the entire screen by default	
-    _captureArea.right = NATIVE_RESOLUTION.width;
-    _captureArea.bottom = NATIVE_RESOLUTION.height;
+    _captureArea.right = NativeResolution().width;
+    _captureArea.bottom = NativeResolution().height;
 
 #if defined(_WIN32)
 
@@ -53,8 +51,6 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
     SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
 
     _hDIB = NULL;
-
-
 
 #elif defined(__APPLE__)
 
@@ -109,7 +105,7 @@ const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
 void ScreenCapture::Resize(const Resolution& resolution) {
 
-    _resolution = std::min<Resolution>(NATIVE_RESOLUTION, resolution);
+    _resolution = std::min<Resolution>(NativeResolution(), resolution);
 
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
@@ -156,6 +152,8 @@ const PixelData ScreenCapture::WholeDeal() const {
 
 const PixelData& ScreenCapture::CaptureScreen() {
 
+    const Resolution& captureAreaRes = _captureArea;
+
 #if defined(_WIN32)
 
     // Resize to target resolution
@@ -176,23 +174,17 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
     CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (int)(_captureArea.bottom - _resolution.height),
-        _captureArea.right - _captureArea.left, _captureArea.bottom - _captureArea.top), _image);
+        captureAreaRes.width, captureAreaRes.height), _image);
 
 #elif defined(__linux__)
 
-    const Resolution captureAreaRes { (Ushort)(_captureArea.right - _captureArea.left), (Ushort)(_captureArea.bottom - _captureArea.top) };
-
-    _image = XGetImage(_display, _root, 
-        NATIVE_RESOLUTION.width - captureAreaRes.width,
-        NATIVE_RESOLUTION.height - captureAreaRes.height, 
-        captureAreaRes.width, captureAreaRes.height, 
+    _image = XGetImage(_display, _root, NativeResolution().width - captureAreaRes.width, 
+        NativeResolution().height - captureAreaRes.height, captureAreaRes.width, captureAreaRes.height, 
         AllPlanes, ZPixmap);   
-_pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
-    if (!(captureAreaRes == _resolution)) {
-        _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
-    } 
+
+    _pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
+    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
         
-    
 #endif
 
     return _pixelData;
@@ -209,17 +201,4 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     const PixelData entireImage = WholeDeal();
     std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
 
-}
-
-
-
-ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) noexcept {
-	
-    _resolution = std::move(other._resolution);
-    _captureArea = std::move(other._captureArea);
-	
-    _bitsPerPixel = std::move(other._bitsPerPixel);
-
-    return *this;
-	
 }

@@ -6,10 +6,8 @@ class ScreenCapture {
 
 private:
 
-    const static Resolution NATIVE_RESOLUTION;
-
     Resolution _resolution = DefaultResolution;
-    ScreenArea _captureArea;
+    ScreenArea _captureArea {};
 	
 	// Header needed to create a valid bitmap file
     BmpFileHeader _header {};
@@ -48,12 +46,12 @@ private:
 
 #endif
 
-    
-
 public:
 
+
+    // static Resolution GetNativeResolution(const bool Reinit = false);
     static Resolution DefaultResolution;
-    static Resolution GetNativeResolution(const bool Reinit = false);
+    static Resolution NativeResolution(const bool Reinit = false);
 
 public:
 
@@ -67,7 +65,7 @@ public:
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&) noexcept;
+    ScreenCapture& operator=(ScreenCapture&&) = delete;
 
     ~ScreenCapture();
 

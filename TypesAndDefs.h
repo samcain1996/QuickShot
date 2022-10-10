@@ -43,13 +43,6 @@ using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 
 using PixelData = std::vector<char>;
 
-struct ScreenArea {
-    size_t left = 0;
-    size_t right = 0;
-    size_t top = 0;
-    size_t bottom = 0;
-};
-
 /*------------------RESOLUTIONS--------------------*/
 
 struct Resolution {
@@ -66,8 +59,7 @@ struct Resolution {
     bool operator>(const Resolution& other) const {
         return !(*this == other || *this < other);
     }
-
-    operator ScreenArea() const { return ScreenArea{ 0, 0, width, height }; }
+    
 };
 
 // Low definition
@@ -87,6 +79,15 @@ constexpr static const Resolution RES_2K = { 2560, 1440 };
 constexpr static const Resolution RES_4K = { 3840, 2160 };
 
 /*--------------------------------------------------*/
+
+struct ScreenArea {
+    size_t left = 0;
+    size_t right = 0;
+    size_t top = 0;
+    size_t bottom = 0;
+
+    operator Resolution() { return { (Ushort)(right - left), (Ushort)(bottom - top) }; }
+};
 
 static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32) {
     return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
