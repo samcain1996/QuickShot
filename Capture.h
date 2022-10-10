@@ -52,24 +52,21 @@ private:
 public:
 
     static Resolution DefaultResolution;
-
-private:
-
-    Resolution GetMaxSupportedResolution();
+    Resolution GetNativeResolution();
 
 public:
 
     /* ---------- Constructors and Destructor ---------- */
 
     ScreenCapture(const ScreenCapture&);
-    ScreenCapture(ScreenCapture&&) = delete;
+    ScreenCapture(ScreenCapture&&) noexcept;
 
-    ScreenCapture(const Resolution& res = DefaultResolution);
+	ScreenCapture(const Resolution& res = DefaultResolution, const std::optional<ScreenArea>& areaToCapture = std::nullopt);
 
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&) = delete;
+    ScreenCapture& operator=(ScreenCapture&&) noexcept;
 
     ~ScreenCapture();
 

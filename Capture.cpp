@@ -2,7 +2,7 @@
 
 Resolution ScreenCapture::DefaultResolution = RES_1080;
 
-Resolution ScreenCapture::GetMaxSupportedResolution() {
+Resolution ScreenCapture::GetNativeResolution() {
 
     static Resolution MAX_SUPPORTED_RES = [this]() {
 
@@ -33,7 +33,7 @@ Resolution ScreenCapture::GetMaxSupportedResolution() {
 	
 }
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESOLUTION(GetMaxSupportedResolution()) {
+ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESOLUTION(GetNativeResolution()) {
 
     _resolution.width = width;
     _resolution.height = height;
@@ -43,32 +43,42 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESO
     _captureArea.bottom = MAX_RESOLUTION.height;
 
 #if defined(_WIN32)
-	
+
     _srcHDC = GetDC(GetDesktopWindow());      // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
-	SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
+    SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
 
     _hDIB = NULL;
 
 #elif defined(__linux__)
 
-            _display = XOpenDisplay(nullptr);
-        _root = DefaultRootWindow(_display);
+    _display = XOpenDisplay(nullptr);
+    _root = DefaultRootWindow(_display);
 
-        XGetWindowAttributes(_display, _root, &_attributes);
+    XGetWindowAttributes(_display, _root, &_attributes);
 
 #elif defined(__APPLE__)
-    
+
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    
+
 #endif
 
     Resize(_resolution);
 
 }
 
-ScreenCapture::ScreenCapture(const Resolution& res) : ScreenCapture(res.width, res.height) {}
+ScreenCapture::ScreenCapture(const Resolution& res, const std::optional<ScreenArea>& areaToCapture) : ScreenCapture(res.width, res.height) {
+
+    if (areaToCapture.has_value()) {
+        const auto& area = areaToCapture.value();
+        _captureArea.left = area.left;
+        _captureArea.right = area.right;
+        _captureArea.top = area.top;
+        _captureArea.bottom = area.bottom;
+    }
+
+}
 
 ScreenCapture::~ScreenCapture() {
 
@@ -100,6 +110,24 @@ ScreenCapture::~ScreenCapture() {
 
 ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.GetResolution()) {}
 
+ScreenCapture::ScreenCapture(ScreenCapture&& other) noexcept {
+	
+    _resolution = std::move(other._resolution);  // TODO Define in Resolution struct
+	_captureArea = std::move(other._captureArea);
+	
+}
+
+ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) noexcept  {
+
+	if (this != &other) {
+		_resolution = std::move(other._resolution);
+		_captureArea = std::move(other._captureArea);
+	}
+
+	return *this;
+
+}
+
 const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
 
@@ -110,17 +138,12 @@ constexpr const size_t ScreenCapture::TotalSize() const {
 
 void ScreenCapture::Resize(const Resolution& resolution) {
 
-    _resolution = resolution;
+    _resolution = std::min<Resolution>(MAX_RESOLUTION, resolution);
 
-    _resolution = std::min<Resolution>(MAX_RESOLUTION, _resolution);
-
-    _captureSize = CalculateBMPFileSize({ (Ushort)(_captureArea.right - _captureArea.left), (Ushort)(_captureArea.bottom - _captureArea.top) }, 
-    _bitsPerPixel);
+    _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
 
     _pixelData = PixelData(_captureSize, '\0');
-
-
 
 #if defined(_WIN32)
 

@@ -1,6 +1,28 @@
 #include <iostream>
 #include <string>
+#include <iomanip>
+#include <sstream>
 #include "Capture.h"
+
+const std::string percentageOfScreenCaptured(const Resolution& nativeRes, const ScreenArea& capturedArea) {
+	
+	const double totalPixels = nativeRes.width * nativeRes.height;
+	const double pixelsCaptured = (capturedArea.right - capturedArea.left) * (capturedArea.bottom - capturedArea.top);
+
+    const auto percentage = ( pixelsCaptured / totalPixels ) * 100 ;
+
+	// Truncate to 2 decimal places
+    std::stringstream formatted;
+    formatted << std::fixed << std::setprecision(2) << percentage;
+
+    return formatted.str();
+}
+
+const std::string nameFile(const Resolution& resolution,const std::string& additional = "") {
+	
+    return std::to_string(resolution.width) + "x" + std::to_string(resolution.height) + additional + ".bmp";
+	
+}
 
 int main(int argc, char** argv) {
 
@@ -9,40 +31,49 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
-    int height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
+	// Set width and height from command line if available, 
+    // otherwise use default resolution ( Configurable in Capture.h )
+    Ushort width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
+    Ushort height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
-    // Source and dest resolutions
     Resolution resolution = { width, height };
 
-    Resolution highResolution = RES_4K;
-    Resolution lowResolution = RES_480;
-
-    // Initialize with resolution of 1920x1080
-    ScreenCapture screen(resolution);
+    ScreenCapture screen(resolution);  // If not resolution is specified, ScreenCapture::DefaultResolution is used
 	
-    // Capture the pixel data of the screen
+    const Resolution nativeResolution = screen.GetNativeResolution();
+	Resolution lowResolution = RES_480;  // List of predefined resolutions in Capture.h
+
+    screen.CaptureScreen();  // Take a screenshot
+	
+	// Save screenshot
+	std::string filename = nameFile(screen.GetResolution());  // Current image resolution
+    screen.SaveToFile(filename);
+    std::cout << "Saved " << filename << " to disk\n";
+
+	
+	// Again but with a lower resolution
+	
+    screen.Resize(lowResolution);
+
+    screen.CaptureScreen();
+	
+    filename = nameFile(screen.GetResolution());
+    screen.SaveToFile(filename);
+    std::cout << "Saved " << filename << " to disk\n";
+
+	
+	// Capture only portion of the entire screen
+    
+    ScreenArea areaToCapture = { 0, nativeResolution.width / 2, 0, nativeResolution.height / 2 };
+
+    screen = ScreenCapture(nativeResolution, areaToCapture);
     screen.CaptureScreen();
 
-    std::string filename = std::to_string(resolution.width) + "x" + std::to_string(resolution.height) + ".bmp";
-    
-    // Save unscaled ScreenCapture to disk
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
-    
-    screen.Resize(highResolution);
-    filename = std::to_string(highResolution.width) + "x" + std::to_string(highResolution.height) + ".bmp";
+	filename = nameFile(screen.GetResolution(), "res_" + 
+        percentageOfScreenCaptured(nativeResolution, areaToCapture) + "%_of_entire_screen");
 	
-        screen.CaptureScreen();
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
-
-    screen.Resize(lowResolution);
-    filename = std::to_string(lowResolution.width) + "x" + std::to_string(lowResolution.height) + ".bmp";
-	
-       screen.CaptureScreen();
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
+	screen.SaveToFile(filename);
+	std::cout << "Saved " << filename << " to disk\n";
 
     return 0;
 }
