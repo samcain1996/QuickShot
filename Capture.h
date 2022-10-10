@@ -67,7 +67,7 @@ public:
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&) = delete;
+    ScreenCapture& operator=(ScreenCapture&&) noexcept;
 
     ~ScreenCapture();
 

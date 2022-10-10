@@ -1,9 +1,9 @@
 #include "Capture.h"
 #include <functional>
 
-Resolution ScreenCapture::DefaultResolution = RES_1080;
-
 const Resolution ScreenCapture::NATIVE_RESOLUTION = ScreenCapture::GetNativeResolution();
+
+Resolution ScreenCapture::DefaultResolution = ScreenCapture::NATIVE_RESOLUTION;
 
 Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
     
@@ -11,6 +11,7 @@ Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
 		
 #if defined(_WIN32)
 		
+        SetProcessDPIAware();
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
@@ -210,3 +211,15 @@ void ScreenCapture::SaveToFile(std::string filename) const {
 
 }
 
+
+
+ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) noexcept {
+	
+    _resolution = std::move(other._resolution);
+    _captureArea = std::move(other._captureArea);
+	
+    _bitsPerPixel = std::move(other._bitsPerPixel);
+
+    return *this;
+	
+}
