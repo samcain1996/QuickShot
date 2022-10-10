@@ -96,7 +96,6 @@ ScreenCapture::~ScreenCapture() {
 #elif defined(__linux__)
 
     XDestroyImage(_image);
-    XCloseDisplay(_display);
 
 #endif
 
