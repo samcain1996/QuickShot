@@ -72,13 +72,13 @@ int main(int argc, char** argv) {
     
     ScreenArea areaToCrop = { 0, nativeResolution.width / 2, 0, nativeResolution.height / 2 };
 
-    ScreenCapture cropped(nativeResolution, areaToCrop);
-    cropped.CaptureScreen();
+    screen = ScreenCapture(nativeResolution, areaToCrop);
+    screen.CaptureScreen();
 
 	filename = "cropped_" +
         percentageOfScreenCaptured(nativeResolution, areaToCrop) + "%_of_entire_screen" + ".bmp";
 	
-	cropped.SaveToFile(filename);
+    screen.SaveToFile(filename);
 	std::cout << "Saved " << filename << " to disk\n";
 
     return 0;

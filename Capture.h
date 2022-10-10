@@ -52,7 +52,7 @@ private:
 public:
 
     static Resolution DefaultResolution;
-    Resolution GetNativeResolution(bool force = false);
+    Resolution GetNativeResolution(const bool Reinit = false);
 
     void InitializeDisplay();
 
@@ -61,14 +61,14 @@ public:
     /* ---------- Constructors and Destructor ---------- */
 
     ScreenCapture(const ScreenCapture&);
-    ScreenCapture(ScreenCapture&&);
+    ScreenCapture(ScreenCapture&&) = delete;
 
 	ScreenCapture(const Resolution& res = DefaultResolution, const std::optional<ScreenArea>& areaToCapture = std::nullopt);
 
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&);
+    ScreenCapture& operator=(ScreenCapture&&);// = default;
 
     ~ScreenCapture();
 
@@ -78,7 +78,6 @@ public:
     const PixelData& CaptureScreen();
 
     const PixelData WholeDeal() const;
-    constexpr const size_t TotalSize() const;
     const Resolution& GetResolution() const;
 
     void SaveToFile(std::string filename = "screenshot.bmp") const;

@@ -4,22 +4,28 @@
 Resolution ScreenCapture::DefaultResolution = RES_1080;
 
 void ScreenCapture::InitializeDisplay() {
-    #if defined(_WIN32)
+
+    static auto init = [this]() {
+#if defined(_WIN32)
+
+    SetProcessDPIAware();  // Needed to ensure correct resolution
 		
-        SetProcessDPIAware();  // Needed to ensure correct resolution
-        #elif defined(__linux__)
+#elif defined(__linux__)
 
     _display = XOpenDisplay(nullptr);
     _root = DefaultRootWindow(_display);
 
     XGetWindowAttributes(_display, _root, &_attributes);
-        #endif
+#endif
+
+    return true;
+    }();
 }
 
-Resolution ScreenCapture::GetNativeResolution(bool force) {
-
-        InitializeDisplay();
-    static auto F = [this]() {
+Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
+    
+    InitializeDisplay();
+    static auto retrieveRes = [this]() {
 
 #if defined(_WIN32)
 		
@@ -27,9 +33,6 @@ Resolution ScreenCapture::GetNativeResolution(bool force) {
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
-
-
-
 
         return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
 		
@@ -39,23 +42,23 @@ Resolution ScreenCapture::GetNativeResolution(bool force) {
         return Resolution{ (Ushort)CGDisplayPixelsWide(mainDisplayId), (Ushort)CGDisplayPixelsHigh(mainDisplayId) };
 		
 #endif
-		
+
     };
+	
+    static auto NATIVE_RESOLUTION = retrieveRes();
 
-    static Resolution NATIVE_RESOLUTION = F();
+    if (Reinit) { retrieveRes(); }
 
-    if (force) { F(); }
-
-   return NATIVE_RESOLUTION;
+    return NATIVE_RESOLUTION;
 	
 }
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_RESOLUTION(GetNativeResolution()) {
+ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_RESOLUTION(GetNativeResolution(true)) {
+
+    InitializeDisplay();
 
     _resolution.width = width;
     _resolution.height = height;
-
-        InitializeDisplay();
 
     // Capture the entire screen by default	
     _captureArea.right = NATIVE_RESOLUTION.width;
@@ -80,6 +83,24 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_R
 
     Resize(_resolution);
 
+}
+
+//ScreenCapture& ScreenCapture::operator=(const ScreenCapture& other) {
+//	
+//    _resolution = other._resolution;
+//    _captureArea = other._captureArea;
+//
+//    return *this;
+//	
+//}
+
+ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) {
+	
+    _resolution = std::move(other._resolution);
+    _captureArea = std::move(other._captureArea);
+
+    return *this;
+	
 }
 
 ScreenCapture::ScreenCapture(const Resolution& res, const std::optional<ScreenArea>& areaToCapture) : ScreenCapture(res.width, res.height) {
@@ -125,12 +146,6 @@ ScreenCapture::~ScreenCapture() {
 ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.GetResolution()) {}
 
 const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
-
-
-
-constexpr const size_t ScreenCapture::TotalSize() const {
-    return _captureSize + BMP_HEADER_SIZE;
-}
 
 void ScreenCapture::Resize(const Resolution& resolution) {
 
