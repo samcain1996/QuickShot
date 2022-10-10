@@ -3,29 +3,31 @@
 
 Resolution ScreenCapture::DefaultResolution = RES_1080;
 
+const Resolution ScreenCapture::NATIVE_RESOLUTION = ScreenCapture::GetNativeResolution();
+
 void ScreenCapture::InitializeDisplay() {
 
-    static auto init = [this]() {
+    static auto init = []() {
+		
 #if defined(_WIN32)
 
     SetProcessDPIAware();  // Needed to ensure correct resolution
 		
 #elif defined(__linux__)
 
-    _display = XOpenDisplay(nullptr);
-    _root = DefaultRootWindow(_display);
-
     XGetWindowAttributes(_display, _root, &_attributes);
+	
 #endif
 
     return true;
+	
     }();
 }
 
 Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
     
     InitializeDisplay();
-    static auto retrieveRes = [this]() {
+    static auto retrieveRes = []() {
 
 #if defined(_WIN32)
 		
@@ -53,7 +55,7 @@ Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
 	
 }
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_RESOLUTION(GetNativeResolution(true)) {
+ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
     InitializeDisplay();
 
@@ -85,32 +87,12 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_R
 
 }
 
-//ScreenCapture& ScreenCapture::operator=(const ScreenCapture& other) {
-//	
-//    _resolution = other._resolution;
-//    _captureArea = other._captureArea;
-//
-//    return *this;
-//	
-//}
-
-ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) {
-	
-    _resolution = std::move(other._resolution);
-    _captureArea = std::move(other._captureArea);
-
-    return *this;
-	
-}
 
 ScreenCapture::ScreenCapture(const Resolution& res, const std::optional<ScreenArea>& areaToCapture) : ScreenCapture(res.width, res.height) {
 
     if (areaToCapture.has_value()) {
         const auto& area = areaToCapture.value();
-        _captureArea.left = area.left;
-        _captureArea.right = area.right;
-        _captureArea.top = area.top;
-        _captureArea.bottom = area.bottom;
+        Crop(area);
     }
 
 }
@@ -183,6 +165,8 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 #endif
 
 }
+
+void ScreenCapture::Crop(const ScreenArea& area) { _captureArea = area; }
 
 const PixelData ScreenCapture::WholeDeal() const {
 	

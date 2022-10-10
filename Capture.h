@@ -6,7 +6,7 @@ class ScreenCapture {
 
 private:
 
-    const Resolution NATIVE_RESOLUTION;
+    const static Resolution NATIVE_RESOLUTION;
 
     Resolution _resolution = DefaultResolution;
     ScreenArea _captureArea;
@@ -40,9 +40,10 @@ private:
 
 #elif defined (__linux__) 
 
-    Display* _display = nullptr;
-    Window _root {};
-    XWindowAttributes _attributes = { 0 };
+    static inline Display* _display = XOpenDisplay(nullptr);
+    static inline Window _root = DefaultRootWindow(_display);
+    static inline XWindowAttributes _attributes = { 0 };
+	
     XImage* _image = nullptr;
 
 #endif
@@ -52,9 +53,8 @@ private:
 public:
 
     static Resolution DefaultResolution;
-    Resolution GetNativeResolution(const bool Reinit = false);
-
-    void InitializeDisplay();
+    static Resolution GetNativeResolution(const bool Reinit = false);
+    static void InitializeDisplay();
 
 public:
 
@@ -68,13 +68,14 @@ public:
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&);// = default;
+    ScreenCapture& operator=(ScreenCapture&&) = delete;
 
     ~ScreenCapture();
 
     /* ------------------------------------------------- */
 
     void Resize(const Resolution& res = DefaultResolution);
+    void Crop(const ScreenArea& area);
     const PixelData& CaptureScreen();
 
     const PixelData WholeDeal() const;
