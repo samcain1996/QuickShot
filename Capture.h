@@ -54,7 +54,6 @@ public:
 
     static Resolution DefaultResolution;
     static Resolution GetNativeResolution(const bool Reinit = false);
-    static void InitializeDisplay();
 
 public:
 

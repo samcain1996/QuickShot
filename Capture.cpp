@@ -5,37 +5,17 @@ Resolution ScreenCapture::DefaultResolution = RES_1080;
 
 const Resolution ScreenCapture::NATIVE_RESOLUTION = ScreenCapture::GetNativeResolution();
 
-void ScreenCapture::InitializeDisplay() {
-
-    static auto init = []() {
-		
-#if defined(_WIN32)
-
-    SetProcessDPIAware();  // Needed to ensure correct resolution
-		
-#elif defined(__linux__)
-
-    XGetWindowAttributes(_display, _root, &_attributes);
-	
-#endif
-
-    return true;
-	
-    }();
-}
-
 Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
     
-    InitializeDisplay();
     static auto retrieveRes = []() {
-
+		
 #if defined(_WIN32)
 		
-
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
 
+        XGetWindowAttributes(_display, _root, &_attributes);
         return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
 		
 #elif defined(__APPLE__)
@@ -56,8 +36,6 @@ Resolution ScreenCapture::GetNativeResolution(const bool Reinit) {
 }
 
 ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
-
-    InitializeDisplay();
 
     _resolution.width = width;
     _resolution.height = height;
