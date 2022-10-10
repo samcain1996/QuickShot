@@ -61,7 +61,7 @@ struct Resolution {
     }
 
     bool operator<(const Resolution& other) const {
-        return width < other.width && height < other.height;
+        return width < other.width || height < other.height;
     }
     bool operator>(const Resolution& other) const {
         return !(*this == other || *this < other);

@@ -36,9 +36,7 @@ int main(int argc, char** argv) {
     Ushort width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
     Ushort height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
 
-    Resolution resolution = { width, height };
-
-    ScreenCapture screen(resolution);  // If not resolution is specified, ScreenCapture::DefaultResolution is used
+    ScreenCapture screen(width, height);  // If not resolution is specified, ScreenCapture::DefaultResolution is used
 	
     const Resolution nativeResolution = screen.GetNativeResolution();
 	Resolution lowResolution = RES_480;  // List of predefined resolutions in Capture.h
@@ -61,18 +59,26 @@ int main(int argc, char** argv) {
     screen.SaveToFile(filename);
     std::cout << "Saved " << filename << " to disk\n";
 
+    screen.Resize(nativeResolution);
+
+    screen.CaptureScreen();
+	
+    filename = "native.bmp";
+    screen.SaveToFile(filename);
+    std::cout << "Saved " << filename << " to disk\n";
+
 	
 	// Capture only portion of the entire screen
     
-    ScreenArea areaToCapture = { 0, nativeResolution.width / 2, 0, nativeResolution.height / 2 };
+    ScreenArea areaToCrop = { 0, nativeResolution.width / 2, 0, nativeResolution.height / 2 };
 
-    screen = ScreenCapture(nativeResolution, areaToCapture);
-    screen.CaptureScreen();
+    ScreenCapture cropped(nativeResolution, areaToCrop);
+    cropped.CaptureScreen();
 
-	filename = nameFile(screen.GetResolution(), "res_" + 
-        percentageOfScreenCaptured(nativeResolution, areaToCapture) + "%_of_entire_screen");
+	filename = "cropped_" +
+        percentageOfScreenCaptured(nativeResolution, areaToCrop) + "%_of_entire_screen" + ".bmp";
 	
-	screen.SaveToFile(filename);
+	cropped.SaveToFile(filename);
 	std::cout << "Saved " << filename << " to disk\n";
 
     return 0;

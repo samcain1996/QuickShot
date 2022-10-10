@@ -6,7 +6,7 @@ class ScreenCapture {
 
 private:
 
-    const Resolution MAX_RESOLUTION;
+    const Resolution NATIVE_RESOLUTION;
 
     Resolution _resolution = DefaultResolution;
     ScreenArea _captureArea;
@@ -52,21 +52,23 @@ private:
 public:
 
     static Resolution DefaultResolution;
-    Resolution GetNativeResolution();
+    Resolution GetNativeResolution(bool force = false);
+
+    void InitializeDisplay();
 
 public:
 
     /* ---------- Constructors and Destructor ---------- */
 
     ScreenCapture(const ScreenCapture&);
-    ScreenCapture(ScreenCapture&&) noexcept;
+    ScreenCapture(ScreenCapture&&);
 
 	ScreenCapture(const Resolution& res = DefaultResolution, const std::optional<ScreenArea>& areaToCapture = std::nullopt);
 
     ScreenCapture(const Ushort width, const Ushort height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
-    ScreenCapture& operator=(ScreenCapture&&) noexcept;
+    ScreenCapture& operator=(ScreenCapture&&);
 
     ~ScreenCapture();
 

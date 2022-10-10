@@ -1,22 +1,35 @@
 #include "Capture.h"
+#include <functional>
 
 Resolution ScreenCapture::DefaultResolution = RES_1080;
 
-Resolution ScreenCapture::GetNativeResolution() {
+void ScreenCapture::InitializeDisplay() {
+    #if defined(_WIN32)
+		
+        SetProcessDPIAware();  // Needed to ensure correct resolution
+        #elif defined(__linux__)
 
-    static Resolution MAX_SUPPORTED_RES = [this]() {
+    _display = XOpenDisplay(nullptr);
+    _root = DefaultRootWindow(_display);
+
+    XGetWindowAttributes(_display, _root, &_attributes);
+        #endif
+}
+
+Resolution ScreenCapture::GetNativeResolution(bool force) {
+
+        InitializeDisplay();
+    static auto F = [this]() {
 
 #if defined(_WIN32)
 		
-        SetProcessDPIAware();  // Needed to ensure correct resolution
+
         return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
-        static Resolution MAX_SUPPORTED_RES = [this]() {
-            _display = XOpenDisplay(nullptr);
-            _root = DefaultRootWindow(_display);
 
-            XGetWindowAttributes(_display, _root, &_attributes);
+
+
 
         return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
 		
@@ -27,20 +40,26 @@ Resolution ScreenCapture::GetNativeResolution() {
 		
 #endif
 		
-    } ();
-	
-    return MAX_SUPPORTED_RES;
+    };
+
+    static Resolution NATIVE_RESOLUTION = F();
+
+    if (force) { F(); }
+
+   return NATIVE_RESOLUTION;
 	
 }
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESOLUTION(GetNativeResolution()) {
+ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : NATIVE_RESOLUTION(GetNativeResolution()) {
 
     _resolution.width = width;
     _resolution.height = height;
 
+        InitializeDisplay();
+
     // Capture the entire screen by default	
-    _captureArea.right = MAX_RESOLUTION.width;
-    _captureArea.bottom = MAX_RESOLUTION.height;
+    _captureArea.right = NATIVE_RESOLUTION.width;
+    _captureArea.bottom = NATIVE_RESOLUTION.height;
 
 #if defined(_WIN32)
 
@@ -51,12 +70,7 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) : MAX_RESO
 
     _hDIB = NULL;
 
-#elif defined(__linux__)
 
-    _display = XOpenDisplay(nullptr);
-    _root = DefaultRootWindow(_display);
-
-    XGetWindowAttributes(_display, _root, &_attributes);
 
 #elif defined(__APPLE__)
 
@@ -110,24 +124,6 @@ ScreenCapture::~ScreenCapture() {
 
 ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.GetResolution()) {}
 
-ScreenCapture::ScreenCapture(ScreenCapture&& other) noexcept {
-	
-    _resolution = std::move(other._resolution);  // TODO Define in Resolution struct
-	_captureArea = std::move(other._captureArea);
-	
-}
-
-ScreenCapture& ScreenCapture::operator=(ScreenCapture&& other) noexcept  {
-
-	if (this != &other) {
-		_resolution = std::move(other._resolution);
-		_captureArea = std::move(other._captureArea);
-	}
-
-	return *this;
-
-}
-
 const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
 
@@ -138,7 +134,7 @@ constexpr const size_t ScreenCapture::TotalSize() const {
 
 void ScreenCapture::Resize(const Resolution& resolution) {
 
-    _resolution = std::min<Resolution>(MAX_RESOLUTION, resolution);
+    _resolution = std::min<Resolution>(NATIVE_RESOLUTION, resolution);
 
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
@@ -210,14 +206,16 @@ const PixelData& ScreenCapture::CaptureScreen() {
     const Resolution captureAreaRes { (Ushort)(_captureArea.right - _captureArea.left), (Ushort)(_captureArea.bottom - _captureArea.top) };
 
     _image = XGetImage(_display, _root, 
-        MAX_RESOLUTION.width - (_captureArea.right - _captureArea.left),
-        MAX_RESOLUTION.height - (_captureArea.bottom - _captureArea.top), 
-        (_captureArea.right - _captureArea.left), (_captureArea.bottom - _captureArea.top), 
+        NATIVE_RESOLUTION.width - captureAreaRes.width,
+        NATIVE_RESOLUTION.height - captureAreaRes.height, 
+        captureAreaRes.width, captureAreaRes.height, 
         AllPlanes, ZPixmap);   
-
-    _pixelData = PixelData(_image->data, _image->data + _captureSize);
-    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
-
+_pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
+    if (!(captureAreaRes == _resolution)) {
+        _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
+    } 
+        
+    
 #endif
 
     return _pixelData;
