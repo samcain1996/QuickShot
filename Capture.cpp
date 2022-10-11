@@ -1,6 +1,12 @@
 #include "Capture.h"
 #include <functional>
 
+Resolution::operator ScreenArea() {
+	
+	return ScreenArea { 0, 0, width, height };
+
+}
+
 Resolution ScreenCapture::DefaultResolution = ScreenCapture::NativeResolution();
 
 Resolution ScreenCapture::NativeResolution(const bool Reinit) {
@@ -63,16 +69,11 @@ ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 }
 
 
-ScreenCapture::ScreenCapture(const Resolution& res, const std::optional<ScreenArea>& areaToCapture) : ScreenCapture(res.width, res.height) {
+ScreenCapture::ScreenCapture(const Resolution& res, const ScreenArea& areaToCapture) : ScreenCapture(res.width, res.height) {
 
-    if (areaToCapture.has_value()) {
-        const auto& area = areaToCapture.value();
-        Crop(area);
-    }
+	_captureArea = areaToCapture;
 
 }
-
-ScreenCapture::ScreenCapture(const Resolution& res) : ScreenCapture(res.width, res.height) {}
 
 ScreenCapture::~ScreenCapture() {
 

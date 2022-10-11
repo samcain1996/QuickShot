@@ -2,13 +2,6 @@
 
 #include "Scale.h"
 
-struct ScreenArea {
-    size_t left = 0;
-    size_t right = 0;
-    size_t top = 0;
-	size_t bottom = 0;
-};
-
 class ScreenCapture {
 
 private:
@@ -67,7 +60,7 @@ public:
     ScreenCapture(const ScreenCapture&);
     ScreenCapture(ScreenCapture&&) = delete;
 
-	ScreenCapture(const Resolution& res = DefaultResolution, const std::optional<ScreenArea>& areaToCapture = std::nullopt);
+	ScreenCapture(const Resolution& res = DefaultResolution, const ScreenArea& areaToCapture = NativeResolution());
 
     ScreenCapture(const Ushort width, const Ushort height);
 

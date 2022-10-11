@@ -2,7 +2,6 @@
 #include <vector>
 #include <cstring>
 #include <fstream>
-#include <optional>
 
 #if defined(_WIN32)
 
@@ -44,6 +43,7 @@ using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 using PixelData = std::vector<char>;
 
 /*------------------RESOLUTIONS--------------------*/
+struct ScreenArea;
 
 struct Resolution {
     Ushort width = 0;
@@ -60,6 +60,7 @@ struct Resolution {
         return !(*this == other || *this < other);
     }
     
+    operator ScreenArea();
 };
 
 // Low definition
@@ -94,7 +95,7 @@ static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, co
 };
 
 
-constexpr static const BmpFileHeader BaseHeader() {
+static constexpr const BmpFileHeader BaseHeader() {
 
     BmpFileHeader baseHeader {};  // All values init to '\0'?
 
@@ -102,7 +103,7 @@ constexpr static const BmpFileHeader BaseHeader() {
     baseHeader[0] = 0x42;
     baseHeader[1] = 0x4D;
 
-    baseHeader[10] = 0x36;  // Start of pixel data
+    baseHeader[10] = 0x36;  // Offset to start of pixel data
 
     // Start of info related to pixel data
     baseHeader[BMP_FILE_HEADER_SIZE] = 0x28;
