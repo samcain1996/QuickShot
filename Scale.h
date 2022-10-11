@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Capture.h"
+#include "TypesAndDefs.h"
+
 
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
@@ -26,7 +27,7 @@ struct PixelMap {
     PixelList pixels;
     Resolution res;
 
-	const size_t ImageSize() const { return pixels.size() * BMP_COLOR_CHANNELS; }
+	const size_t ImageSize() const { return CalculateBMPFileSize(res); }
 	
     PixelMap() = delete;
     PixelMap(const Resolution& res);
@@ -62,6 +63,7 @@ class Scaler {
 public:
 
     static inline ScaleMethod scaleMethod = ScaleMethod::NearestNeighbor;
+
 
     static PixelData Scale(const PixelData& sourceImage,
         const Resolution& sourceResolution, const Resolution& destResolution);

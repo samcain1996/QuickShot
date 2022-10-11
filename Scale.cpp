@@ -5,7 +5,11 @@
 Pixel::Pixel() : rgba({ '\0', '\0', '\0', '\0' }) {}
 Pixel::Pixel(const char red, const char green, const char blue, const char alpha) : 
     rgba{ red, green, blue, alpha } {}
-Pixel::Pixel(const char channels[BMP_COLOR_CHANNELS]) : rgba{ channels[0], channels[1], channels[2], channels[3] } {}
+Pixel::Pixel(const char channels[BMP_COLOR_CHANNELS]) : Pixel() {
+    for (size_t channelOffset = 0; channelOffset < rgba.size(); ++channelOffset) {
+        rgba[channelOffset] = channels[channelOffset];
+    }
+}
 
 Pixel::Pixel(const Pixel& other) : Pixel(other.rgba.data()) {}
 Pixel::Pixel(Pixel&& other) noexcept { rgba = std::move(other.rgba); };
@@ -19,7 +23,7 @@ Pixel& Pixel::operator=(const Pixel& other) {
 
 /* ----- Pixel Map ----- */
 
-PixelMap::PixelMap(const Resolution& res) : res(res), pixels(ScreenCapture::CalculateBMPFileSize(res) / BMP_COLOR_CHANNELS) {}
+PixelMap::PixelMap(const Resolution& res) : res(res), pixels(CalculateBMPFileSize(res) / BMP_COLOR_CHANNELS) {}
 PixelMap::PixelMap(const PixelMap& other) : res(other.res), pixels(other.pixels) {}
 PixelMap::PixelMap(PixelMap&& other) noexcept { res = std::move(other.res); pixels = std::move(other.pixels); }
 
@@ -74,8 +78,10 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
 const PixelMap Scaler::BitmapToPixelMap(const PixelData& image, const Resolution& res) {
     
     PixelMap pixelMap(res);
-    for (size_t pixelIdx = 0; pixelIdx < pixelMap.ImageSize(); pixelIdx += BMP_COLOR_CHANNELS) {
-        pixelMap.pixels[pixelIdx / BMP_COLOR_CHANNELS] = Pixel(&image[pixelIdx]);
+
+    for (size_t pixelIdx = 0; pixelIdx < pixelMap.pixels.size(); ++pixelIdx) {
+        const size_t imageOffset = pixelIdx * BMP_COLOR_CHANNELS;
+        pixelMap.pixels[pixelIdx] = Pixel(&image.data()[imageOffset]);
     }
     return pixelMap;
 
@@ -83,8 +89,7 @@ const PixelMap Scaler::BitmapToPixelMap(const PixelData& image, const Resolution
 
 // Convert a list of pixels to a new bitmap
 PixelData Scaler::ConvertFromPixelMap(const PixelMap& map) {
-	
-	PixelData image(map.ImageSize());
+	PixelData image(map.pixels.size() * BMP_COLOR_CHANNELS);
 
     for (size_t pixelIdx = 0; pixelIdx < map.pixels.size(); pixelIdx++) {
         const Pixel& pixel = map.pixels[pixelIdx];

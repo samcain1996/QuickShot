@@ -1,49 +1,74 @@
 #include "Capture.h"
+#include <functional>
 
-constexpr const Uint32 ScreenCapture::CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel) {
-    return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
+Resolution ScreenCapture::DefaultResolution = ScreenCapture::NativeResolution();
+
+Resolution ScreenCapture::NativeResolution(const bool Reinit) {
+    
+    static auto retrieveRes = []() {
+		
+#if defined(_WIN32)
+		
+        SetProcessDPIAware();
+        return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
+		
+#elif defined(__linux__)
+
+        XGetWindowAttributes(_display, _root, &_attributes);
+        return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
+		
+#elif defined(__APPLE__)
+
+        const auto mainDisplayId = CGMainDisplayID();
+        return Resolution{ (Ushort)CGDisplayPixelsWide(mainDisplayId), (Ushort)CGDisplayPixelsHigh(mainDisplayId) };
+		
+#endif
+
+    };
+	
+    static Resolution NATIVE_RESOLUTION = retrieveRes();
+
+    if (Reinit) { retrieveRes(); }
+
+    return NATIVE_RESOLUTION;
+	
 }
-
-Resolution ScreenCapture::DefaultResolution = RES_1080;
 
 ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
 
     _resolution.width = width;
     _resolution.height = height;
 
-#if defined(__linux__)
-
-    _display = XOpenDisplay(nullptr);
-    _root = DefaultRootWindow(_display);
-
-    XGetWindowAttributes(_display, _root, &_attributes);
-    
-#endif
+    // Capture the entire screen by default	
+    _captureArea.right = NativeResolution().width;
+    _captureArea.bottom = NativeResolution().height;
 
 #if defined(_WIN32)
-	
-    SetProcessDPIAware();  // Needed to ensure correct resolution
 
     _srcHDC = GetDC(GetDesktopWindow());      // Get the device context of the monitor [1]
     _memHDC = CreateCompatibleDC(_srcHDC);    // Creates a new device context from previous context
 
-	SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
+    SetStretchBltMode(_memHDC, HALFTONE);     // Set the stretching mode to halftone
 
     _hDIB = NULL;
 
-	// Capture the entire screen by default
-    _captureArea.right = GetSystemMetrics(SM_CXSCREEN);
-    _captureArea.bottom = GetSystemMetrics(SM_CYSCREEN);
+#elif defined(__APPLE__)
 
-#endif
-
-#if defined(__APPLE__)
-    
     _colorspace = CGColorSpaceCreateDeviceRGB();
-    
+
 #endif
 
     Resize(_resolution);
+
+}
+
+
+ScreenCapture::ScreenCapture(const Resolution& res, const std::optional<ScreenArea>& areaToCapture) : ScreenCapture(res.width, res.height) {
+
+    if (areaToCapture.has_value()) {
+        const auto& area = areaToCapture.value();
+        Crop(area);
+    }
 
 }
 
@@ -70,7 +95,6 @@ ScreenCapture::~ScreenCapture() {
 #elif defined(__linux__)
 
     XDestroyImage(_image);
-    XCloseDisplay(_display);
 
 #endif
 
@@ -81,65 +105,9 @@ ScreenCapture::ScreenCapture(const ScreenCapture& other) : ScreenCapture(other.G
 
 const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
-constexpr const BmpFileHeader ScreenCapture::BaseHeader() {
-
-    BmpFileHeader baseHeader {};  // All values init to '\0'?
-
-    // Identifies file as bmp
-    baseHeader[0] = 0x42;
-    baseHeader[1] = 0x4D;
-
-    baseHeader[10] = 0x36;  // Start of pixel data
-
-    // Start of info related to pixel data
-    baseHeader[BMP_FILE_HEADER_SIZE] = 0x28;
-
-    baseHeader[BMP_FILE_HEADER_SIZE+12] = 1;
-
-    return baseHeader;
-}
-
-const BmpFileHeader ScreenCapture::ConstructBMPHeader(Resolution resolution,
-        const Ushort bitsPerPixel) {
-
-    BmpFileHeader header = BaseHeader();
-
-    // Encode file size
-    EncodeAsByte(&header[2], resolution.width * resolution.height * 
-        BMP_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
-
-    // Encode pixels wide
-    EncodeAsByte(&header[4 + BMP_FILE_HEADER_SIZE], resolution.width);
-
-#if !defined(_WIN32)  // Window bitmaps are stored upside down
-
-    resolution.height = -resolution.height;
-
-#endif
-
-    // Encode pixels high
-    EncodeAsByte(&header[8 + BMP_FILE_HEADER_SIZE], resolution.height);
-
-#if !defined(_WIN32)  // Window bitmaps are stored upside down
-
-    std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
-        [](char& b) { if ( b == '\0' ) { b = (char)255; } });
-
-#endif
-
-    header[BMP_FILE_HEADER_SIZE + 14] = bitsPerPixel;
-	
-    return header;
-	
-}
-
-constexpr const size_t ScreenCapture::TotalSize() const {
-    return _captureSize + BMP_HEADER_SIZE;
-}
-
 void ScreenCapture::Resize(const Resolution& resolution) {
 
-    _resolution = resolution;
+    _resolution = std::min<Resolution>(NativeResolution(), resolution);
 
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
@@ -167,12 +135,14 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height, 
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height,
         8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
 }
+
+void ScreenCapture::Crop(const ScreenArea& area) { _captureArea = area; }
 
 const PixelData ScreenCapture::WholeDeal() const {
 	
@@ -183,6 +153,8 @@ const PixelData ScreenCapture::WholeDeal() const {
 }
 
 const PixelData& ScreenCapture::CaptureScreen() {
+
+    const Resolution& captureAreaRes = _captureArea;
 
 #if defined(_WIN32)
 
@@ -202,14 +174,19 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__APPLE__)
 
-    _image = CGDisplayCreateImage(CGMainDisplayID());
-    CGContextDrawImage(_context, CGRectMake(0, 0, _resolution.width, _resolution.height), _image);
+	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
+    CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (int)(_captureArea.bottom - _resolution.height),
+        captureAreaRes.width, captureAreaRes.height), _image);
 
 #elif defined(__linux__)
 
-    _image = XGetImage(_display, _root, 0, 0, _resolution.width, _resolution.height, AllPlanes, ZPixmap);
-    _pixelData = PixelData(_image->data, _image->data + _captureSize);
+    _image = XGetImage(_display, _root, NativeResolution().width - captureAreaRes.width, 
+        NativeResolution().height - captureAreaRes.height, captureAreaRes.width, captureAreaRes.height, 
+        AllPlanes, ZPixmap);   
 
+    _pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
+    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
+        
 #endif
 
     return _pixelData;
@@ -227,4 +204,3 @@ void ScreenCapture::SaveToFile(std::string filename) const {
     std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
 
 }
-

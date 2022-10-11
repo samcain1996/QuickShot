@@ -33,6 +33,6 @@
 
 build/*
 *.bmp
-bench.cpp
-*.out
+*.json
 .vscode/*
+

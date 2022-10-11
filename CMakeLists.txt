@@ -31,6 +31,7 @@ add_library(QuickShot SHARED Scale.cpp Capture.cpp)
 set_target_properties(QuickShot PROPERTIES 
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
+    PUBLIC_HEADER TypesAndDefs.h
     PUBLIC_HEADER Scale.h 
     PUBLIC_HEADER Capture.h)
 
