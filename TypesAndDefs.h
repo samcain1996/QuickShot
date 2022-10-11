@@ -2,6 +2,7 @@
 #include <vector>
 #include <cstring>
 #include <fstream>
+#include <span>
 
 #if defined(_WIN32)
 
@@ -21,8 +22,9 @@
 
 using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
+using ByteSpan = std::span<char, 4>;
 
-constexpr void EncodeAsByte(char encodedNumber[4], const Uint32 numberToEncode) {
+constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode) {
 
     encodedNumber[3] = (numberToEncode >> 24) & 0xFF;
     encodedNumber[2] = (numberToEncode >> 16) & 0xFF;
@@ -46,8 +48,8 @@ using PixelData = std::vector<char>;
 struct ScreenArea;
 
 struct Resolution {
-    Ushort width = 0;
-    Ushort height = 0;
+    int width = 0;
+    int height = 0;
 
     bool operator==(const Resolution& other) const {
         return width == other.width && height == other.height;
@@ -82,12 +84,12 @@ constexpr static const Resolution RES_4K = { 3840, 2160 };
 /*--------------------------------------------------*/
 
 struct ScreenArea {
-    size_t left = 0;
-    size_t right = 0;
-    size_t top = 0;
-    size_t bottom = 0;
+    int left = 0;
+    int right = 0;
+    int top = 0;
+    int bottom = 0;
 
-    operator Resolution() { return { (Ushort)(right - left), (Ushort)(bottom - top) }; }
+    operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 
 static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32) {
@@ -119,12 +121,16 @@ static const inline BmpFileHeader ConstructBMPHeader(Resolution resolution,
 
     BmpFileHeader header = BaseHeader();
 
+	BmpFileHeader::iterator filesizeIter = header.begin() + 2;
+    BmpFileHeader::iterator widthIter = header.begin() + BMP_FILE_HEADER_SIZE + 4;
+    BmpFileHeader::iterator heightIter = header.begin() + BMP_FILE_HEADER_SIZE + 8;
+	
     // Encode file size
-    EncodeAsByte(&header[2], resolution.width * resolution.height * 
+    EncodeAsByte(ByteSpan(filesizeIter, 4), resolution.width * resolution.height *
         BMP_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
 
     // Encode pixels wide
-    EncodeAsByte(&header[4 + BMP_FILE_HEADER_SIZE], resolution.width);
+    EncodeAsByte(ByteSpan(widthIter, 4), resolution.width);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
@@ -133,7 +139,7 @@ static const inline BmpFileHeader ConstructBMPHeader(Resolution resolution,
 #endif
 
     // Encode pixels high
-    EncodeAsByte(&header[8 + BMP_FILE_HEADER_SIZE], resolution.height);
+    EncodeAsByte(ByteSpan(heightIter, 4), resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 

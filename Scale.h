@@ -64,7 +64,6 @@ public:
 
     static inline ScaleMethod scaleMethod = ScaleMethod::NearestNeighbor;
 
-
     static PixelData Scale(const PixelData& sourceImage,
         const Resolution& sourceResolution, const Resolution& destResolution);
 

@@ -3,7 +3,7 @@
 
 Resolution::operator ScreenArea() {
 	
-	return ScreenArea { 0, 0, width, height };
+	return ScreenArea { 0, width, 0, height };
 
 }
 
@@ -16,17 +16,17 @@ Resolution ScreenCapture::NativeResolution(const bool Reinit) {
 #if defined(_WIN32)
 		
         SetProcessDPIAware();
-        return Resolution{ (Ushort)GetSystemMetrics(SM_CXSCREEN), (Ushort)GetSystemMetrics(SM_CYSCREEN) };
+        return Resolution{ GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
 		
 #elif defined(__linux__)
 
         XGetWindowAttributes(_display, _root, &_attributes);
-        return Resolution{ (Ushort)_attributes.width, (Ushort)_attributes.height };
+        return Resolution{ _attributes.width, _attributes.height };
 		
 #elif defined(__APPLE__)
-
+		
         const auto mainDisplayId = CGMainDisplayID();
-        return Resolution{ (Ushort)CGDisplayPixelsWide(mainDisplayId), (Ushort)CGDisplayPixelsHigh(mainDisplayId) };
+        return Resolution{ CGDisplayPixelsWide(mainDisplayId), CGDisplayPixelsHigh(mainDisplayId) };
 		
 #endif
 
@@ -40,7 +40,7 @@ Resolution ScreenCapture::NativeResolution(const bool Reinit) {
 	
 }
 
-ScreenCapture::ScreenCapture(const Ushort width, const Ushort height) {
+ScreenCapture::ScreenCapture(const int width, const int height) {
 
     _resolution.width = width;
     _resolution.height = height;
@@ -146,7 +146,7 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 void ScreenCapture::Crop(const ScreenArea& area) { _captureArea = area; }
 
 const PixelData ScreenCapture::WholeDeal() const {
-	
+
     PixelData wholeDeal(_header.begin(), _header.end());
 	std::copy(_pixelData.begin(), _pixelData.end(), std::back_inserter(wholeDeal));
 
@@ -176,7 +176,7 @@ const PixelData& ScreenCapture::CaptureScreen() {
 #elif defined(__APPLE__)
 
 	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
-    CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (int)(_captureArea.bottom - _resolution.height),
+    CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (_captureArea.bottom - _resolution.height),
         captureAreaRes.width, captureAreaRes.height), _image);
 
 #elif defined(__linux__)

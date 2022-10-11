@@ -45,13 +45,11 @@ private:
     XImage* _image = nullptr;
 
 #endif
-
+	
 public:
 
-
-    // static Resolution GetNativeResolution(const bool Reinit = false);
     static Resolution DefaultResolution;
-    static Resolution NativeResolution(const bool Reinit = false);
+    static Resolution NativeResolution(const bool reinit = false);
 
 public:
 
@@ -62,7 +60,7 @@ public:
 
 	ScreenCapture(const Resolution& res = DefaultResolution, const ScreenArea& areaToCapture = NativeResolution());
 
-    ScreenCapture(const Ushort width, const Ushort height);
+    ScreenCapture(const int width, const int height);
 
     ScreenCapture& operator=(const ScreenCapture&) = delete;
     ScreenCapture& operator=(ScreenCapture&&) = delete;
