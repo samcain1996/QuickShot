@@ -45,7 +45,6 @@ using BmpFileHeader = std::array<char, BMP_HEADER_SIZE>;
 using PixelData = std::vector<char>;
 
 /*------------------RESOLUTIONS--------------------*/
-struct ScreenArea;
 
 struct Resolution {
     int width = 0;
@@ -60,9 +59,7 @@ struct Resolution {
     }
     bool operator>(const Resolution& other) const {
         return !(*this == other || *this < other);
-    }
-    
-    operator ScreenArea();
+    }   
 };
 
 // Low definition
@@ -89,6 +86,8 @@ struct ScreenArea {
     int top = 0;
     int bottom = 0;
 
+    ScreenArea() = default;
+	ScreenArea(const Resolution& res) : right(res.width), bottom(res.height) {}
     operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 

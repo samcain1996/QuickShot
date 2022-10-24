@@ -1,12 +1,6 @@
 #include "Capture.h"
 #include <functional>
 
-Resolution::operator ScreenArea() {
-	
-	return ScreenArea { 0, width, 0, height };
-
-}
-
 Resolution ScreenCapture::DefaultResolution = ScreenCapture::NativeResolution();
 
 Resolution ScreenCapture::NativeResolution(const bool Reinit) {
