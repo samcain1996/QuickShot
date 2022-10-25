@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 20)
-set(DEMO OFF CACHE BOOL "Build demo")
+set(DEMO ON CACHE BOOL "Build demo")
 
 if (DEMO)
 project(QuickShotDemo)

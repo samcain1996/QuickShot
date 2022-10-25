@@ -72,10 +72,8 @@ constexpr static const Resolution RES_480 = { 640, 480 };
 // High definition
 constexpr static const Resolution RES_720 = { 1280, 720 };
 constexpr static const Resolution RES_1080 = { 1920, 1080 };
-
 constexpr static const Resolution RES_1440 = { 2560, 1440 };
 constexpr static const Resolution RES_2K = { 2560, 1440 };
-
 constexpr static const Resolution RES_4K = { 3840, 2160 };
 
 /*--------------------------------------------------*/

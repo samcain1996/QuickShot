@@ -20,7 +20,7 @@ Resolution ScreenCapture::NativeResolution(const bool Reinit) {
 #elif defined(__APPLE__)
 		
         const auto mainDisplayId = CGMainDisplayID();
-        return Resolution{ CGDisplayPixelsWide(mainDisplayId), CGDisplayPixelsHigh(mainDisplayId) };
+        return Resolution{ (int)CGDisplayPixelsWide(mainDisplayId), (int)CGDisplayPixelsHigh(mainDisplayId) };
 		
 #endif
 
