@@ -26,60 +26,22 @@ const std::string nameFile(const Resolution& resolution,const std::string& addit
 
 int main(int argc, char** argv) {
 
-    if (argc != 1 && argc != 3) {
-        std::cerr << "Too many command line arguments, expects 0 or 2\n";
-        return 1;
-    }
-
-	// Set width and height from command line if available, 
-    // otherwise use default resolution ( Configurable in Capture.h )
-    Ushort width = argc == 3 ? std::atoi(argv[1]) : ScreenCapture::DefaultResolution.width;
-    Ushort height = argc == 3 ? std::atoi(argv[2]) : ScreenCapture::DefaultResolution.height;
+	unsigned int width = 1920;
+	unsigned int height = 1080;
 
     ScreenCapture screen(width, height);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
 	
-    const Resolution nativeResolution = ScreenCapture::NativeResolution();
-	Resolution lowResolution = RES_480;  // List of predefined resolutions in Capture.h
+	auto image = screen.CaptureScreen();
 
-    screen.CaptureScreen();  // Take a screenshot
-	
-	// Save screenshot
-	std::string filename = nameFile(screen.GetResolution());  // Current image resolution
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
+	screen.SaveToFile("original");
 
-	
-	// Again but with a lower resolution
-	
-    screen.Resize(lowResolution);
+	Scaler::scaleMethod = ScaleMethod::Bilinear;
+	image = Scaler::Scale(image, RES_1080, RES_1080);
 
-    screen.CaptureScreen();
-	
-    filename = nameFile(screen.GetResolution());
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
-
-    screen.Resize(nativeResolution);
-
-    screen.CaptureScreen();
-	
-    filename = "native.bmp";
-    screen.SaveToFile(filename);
-    std::cout << "Saved " << filename << " to disk\n";
-
-	
-	// Capture only portion of the entire screen
-    
-    ScreenArea areaToCrop = { 0, nativeResolution.width / 2, 0, nativeResolution.height / 2 };
-
-    ScreenCapture cropped(nativeResolution, areaToCrop);
-    cropped.CaptureScreen();
-
-	filename = "cropped_" +
-        percentageOfScreenCaptured(nativeResolution, areaToCrop) + "%_of_entire_screen" + ".bmp";
-	
-    cropped.SaveToFile(filename);
-	std::cout << "Saved " << filename << " to disk\n";
+	auto header = ConstructBMPHeader(RES_1080, 32);
+	std::ofstream file("upscaled.bmp", std::ios::binary);
+	file.write(header.data(), header.size());
+	file.write(image.data(), image.size());
 
     return 0;
 }

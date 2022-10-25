@@ -17,6 +17,16 @@ const size_t PixelMap::GetDistance(const Coordinate& coord1, const Coordinate& c
     return sqrt(pow(coord1.first - coord2.first, 2) + pow(coord1.second - coord2.second, 2));
 }
 
+const size_t PixelMap::ToPixelIdx(const size_t absoluteIdx) { return absoluteIdx / BMP_COLOR_CHANNELS; }
+const size_t PixelMap::ToAbsoluteIdx(const size_t pixelIdx) { return pixelIdx * BMP_COLOR_CHANNELS; }
+const std::span<char> PixelMap::GetPixel(PixelData& data, const size_t index, const bool absoluteIndex) {
+    const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
+    return std::span<char>{data}.subspan(idx, 4);
+}
+const std::span<const char> PixelMap::GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex) {
+    const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
+    return std::span<const char>{data}.subspan(idx, 4);
+}
 /* --------------------- */
 
 /* ----- Scaler ----- */
@@ -126,24 +136,24 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
         const auto p_hl = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_l }), false);
         const auto p_hh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_h }), false);
 
-        char r1 = xl_weight * p_ll[0] + xh_weight * p_hl[0];
-        char r2 = xl_weight * p_lh[0] + xh_weight * p_hh[0];
+        char r = (xl_weight * p_ll[0] + xh_weight * p_hl[0]) * yl_weight +
+            (xl_weight * p_lh[0] + xh_weight * p_hh[0]) * yh_weight;
 
-        char g1 = xl_weight * p_ll[1] + xh_weight * p_hl[1];
-        char g2 = xl_weight * p_lh[1] + xh_weight * p_hh[1];
+        char g = (xl_weight * p_ll[1] + xh_weight * p_hl[1]) * yl_weight +
+            (xl_weight * p_lh[1] + xh_weight * p_hh[1]) * yh_weight;
 
-        char b1 = xl_weight * p_ll[2] + xh_weight * p_hl[2];
-        char b2 = xl_weight * p_lh[2] + xh_weight * p_hh[2];
+        char b = (xl_weight * p_ll[2] + xh_weight * p_hl[2]) * yl_weight +
+            (xl_weight * p_lh[2] + xh_weight * p_hh[2]) * yh_weight;
 
-        char a1 = xl_weight * p_ll[3] + xh_weight * p_hl[3];
-        char a2 = xl_weight * p_lh[3] + xh_weight * p_hh[3];
+        char a = (xl_weight * p_ll[3] + xh_weight * p_hl[3]) * yl_weight +
+            (xl_weight * p_lh[3] + xh_weight * p_hh[3]) * yh_weight;
 
         auto scaledPixel = PixelMap::GetPixel(scaled, absIndex);
 
-        scaledPixel[0] = r1 * yl_weight + r2 * yh_weight;
-        scaledPixel[1] = g1 * yl_weight + g2 * yh_weight;
-        scaledPixel[2] = b1 * yl_weight + b2 * yh_weight;
-        scaledPixel[3] = a1 * yl_weight + a2 * yh_weight;
+        scaledPixel[0] = r;
+        scaledPixel[1] = g;
+        scaledPixel[2] = b;
+        scaledPixel[3] = a;
 
     }
 

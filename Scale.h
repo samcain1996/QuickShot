@@ -2,7 +2,6 @@
 
 #include "TypesAndDefs.h"
 #include <cmath>
-#include <queue>
 
 
 // X and Y positions of a pixel
@@ -18,18 +17,12 @@ namespace PixelMap {
 
     static const size_t GetDistance(const Coordinate& coord1, const Coordinate& coord2);
 
-    static inline const size_t ToPixelIdx(const size_t absoluteIdx) { return absoluteIdx / BMP_COLOR_CHANNELS; }
-    static inline const size_t ToAbsoluteIdx(const size_t pixelIdx) { return pixelIdx * BMP_COLOR_CHANNELS; }
+    static const size_t ToPixelIdx(const size_t absoluteIdx);
+    static const size_t ToAbsoluteIdx(const size_t pixelIdx);
 
-	static inline const std::span<char> GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true) {
-        const size_t idx = absoluteIndex ? index : ToAbsoluteIdx(index);
-        return std::span<char>{data}.subspan(idx, 4);
-	}
+    static const std::span<char> GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true);
 
-    static inline const std::span<const char> GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true) {
-        const size_t idx = absoluteIndex ? index : ToAbsoluteIdx(index);
-        return std::span<const char>{data}.subspan(idx, 4);
-    }
+    static const std::span<const char> GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true);
 
 };
 
@@ -71,9 +64,9 @@ private:
 
     // Upscale using nearest neighbor technique
     static PixelData NearestNeighbor(const PixelData& source, const Resolution& src, const Resolution& dest);
+    static PixelData Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest);
 
     // TODO: Implement other scaling methods
-    static PixelData Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest);
     static PixelData Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest);
     static PixelData Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest);
 
