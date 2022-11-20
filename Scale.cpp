@@ -1,6 +1,5 @@
 #include "Scale.h"
 
-
 /* ----- Pixel Map ----- */
 
 // Convert 1-D index to 2-D coordinate
@@ -130,14 +129,14 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
 
         // Nearest pixels X-values and their weight in relation to current pixel
         double x_l = floor(scaledImgX / scaleX);
-        double x_h = min(ceil(scaledImgX / scaleX), X_MAX_SRC);
+        double x_h = std::min((int)ceil(scaledImgX / scaleX), X_MAX_SRC);
 
         double xl_weight = 1 - (x - x_l) / X_MAX_SRC;
         double xh_weight = 1 - xl_weight;
 
         // Nearest pixels Y-values and their weight in relation to current pixel
         double y_l = floor(scaledImgY / scaleY);
-        double y_h = min(ceil(scaledImgY / scaleY), Y_MAX_SRC);
+        double y_h = std::min((int)ceil(scaledImgY / scaleY), Y_MAX_SRC);
 
         double yl_weight = 1 - (y - y_l) / Y_MAX_SRC;
         double yh_weight = 1 - yl_weight;

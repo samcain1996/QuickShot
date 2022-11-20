@@ -1,9 +1,8 @@
 #pragma once
 
-#include "TypesAndDefs.h"
 #include <cmath>
 #include <algorithm>
-
+#include "TypesAndDefs.h"
 
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
