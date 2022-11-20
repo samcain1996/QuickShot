@@ -36,9 +36,9 @@ int main(int argc, char** argv) {
 	screen.SaveToFile("original");
 
 	Scaler::scaleMethod = ScaleMethod::Bilinear;
-	image = Scaler::Scale(image, RES_1080, RES_1080);
+	image = Scaler::Scale(image, RES_1080, RES_4K);
 
-	auto header = ConstructBMPHeader(RES_1080, 32);
+	auto header = ConstructBMPHeader(RES_4K, 32);
 	std::ofstream file("upscaled.bmp", std::ios::binary);
 	file.write(header.data(), header.size());
 	file.write(image.data(), image.size());
