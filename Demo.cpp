@@ -26,22 +26,30 @@ const std::string nameFile(const Resolution& resolution,const std::string& addit
 
 int main(int argc, char** argv) {
 
-	unsigned int width = 1920;
-	unsigned int height = 1080;
+	Resolution sourceRes = { 1920, 1080 };
+	Resolution targetRes = RES_4K;
 
-    ScreenCapture screen(width, height);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
+    ScreenCapture screen(sourceRes);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
 	
 	auto image = screen.CaptureScreen();
+	screen.SaveToFile("Original");
 
-	screen.SaveToFile("original");
+	auto header = ConstructBMPHeader(targetRes, 32);
+
+	Scaler::scaleMethod = ScaleMethod::NearestNeighbor;
+	auto scaled = Scaler::Scale(image, sourceRes, targetRes);
+
+	std::ofstream file("NearestNeighbor.bmp", std::ios::binary);
+	file.write(header.data(), header.size());
+	file.write(scaled.data(), scaled.size());
+	file.close();
 
 	Scaler::scaleMethod = ScaleMethod::Bilinear;
-	image = Scaler::Scale(image, RES_1080, RES_4K);
+	scaled = Scaler::Scale(image, sourceRes, targetRes);
 
-	auto header = ConstructBMPHeader(RES_4K, 32);
-	std::ofstream file("upscaled.bmp", std::ios::binary);
+	file = std::ofstream("Bilinear.bmp", std::ios::binary);
 	file.write(header.data(), header.size());
-	file.write(image.data(), image.size());
+	file.write(scaled.data(), scaled.size());
 
     return 0;
 }

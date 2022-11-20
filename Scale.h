@@ -49,6 +49,9 @@ public:
     static PixelData Scale(const PixelData& sourceImage,
         const Resolution& sourceResolution, const Resolution& destResolution);
 
+    static PixelData Scale(const PixelData& sourceImage,
+        const Resolution& sourceResolution, const ScaleRatio& scaleRatio);
+
 private:
 
     // Class shouldn't be instantiated

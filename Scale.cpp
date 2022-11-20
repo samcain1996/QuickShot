@@ -55,6 +55,14 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
 
 }
 
+PixelData Scaler::Scale(const PixelData& sourceImage,
+    const Resolution& sourceResolution, const ScaleRatio& scaleRatio) {
+
+    return Scaler::Scale(sourceImage, sourceResolution, 
+        Resolution { int(sourceResolution.width * scaleRatio.first), int(sourceResolution.height * scaleRatio.second)});
+
+}
+
 // Get the ratio in the x-direction between dest and source images
 const double Scaler::ScaleRatioX(const Resolution& source, const Resolution& dest) {
     return (dest.width) / (double)(source.width);
