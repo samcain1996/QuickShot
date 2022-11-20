@@ -172,6 +172,7 @@ const PixelData& ScreenCapture::CaptureScreen() {
 	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
     CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (_captureArea.bottom - _resolution.height),
         captureAreaRes.width, captureAreaRes.height), _image);
+    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
 
 #elif defined(__linux__)
 
