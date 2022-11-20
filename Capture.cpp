@@ -130,8 +130,10 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height,
-        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    const Resolution& captureAreaRes = _captureArea;
+
+    _context = CGBitmapContextCreate(_pixelData.data(), captureAreaRes.width, captureAreaRes.height,
+        8, captureAreaRes.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 

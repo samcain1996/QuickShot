@@ -26,7 +26,7 @@ const std::string nameFile(const Resolution& resolution,const std::string& addit
 
 int main(int argc, char** argv) {
 
-	Resolution sourceRes = ScreenCapture::NativeResolution();
+	Resolution sourceRes = RES_1440;
 	Resolution targetRes = RES_4K;
 
     ScreenCapture screen(sourceRes);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
