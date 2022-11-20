@@ -2,10 +2,13 @@
 
 #include "TypesAndDefs.h"
 #include <cmath>
+#include <algorithm>
 
 
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
+using Pixel = std::span<char>;
+using ConstPixel = std::span<const char>;
 
 namespace PixelMap {
 
@@ -20,9 +23,9 @@ namespace PixelMap {
     static const size_t ToPixelIdx(const size_t absoluteIdx);
     static const size_t ToAbsoluteIdx(const size_t pixelIdx);
 
-    static const std::span<char> GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true);
+    static const Pixel GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true);
 
-    static const std::span<const char> GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true);
+    static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true);
 
 };
 
