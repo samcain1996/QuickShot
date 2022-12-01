@@ -99,6 +99,9 @@ struct ScreenArea {
     ScreenArea(const int left, const int right, const int top, const int bottom) :
         left(left), right(right), top(top), bottom(bottom) {}
 	ScreenArea(const Resolution& res) : right(res.width), bottom(res.height) {}
+    ScreenArea(const Resolution& res, const int xOffset, const int yOffset) :
+        left(xOffset), right(xOffset + res.width), top(yOffset), bottom(yOffset + res.height) {}
+
     operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 
