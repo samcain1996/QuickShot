@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 20)
 set(DEMO ON CACHE BOOL "Build demo")
+set(LIBCREATE OFF CACHE BOOL "Create library")
 
 if (DEMO)
 project(QuickShotDemo)
 endif()
 
-project(QuickShot VERSION 1.0.0 DESCRIPTION "Programatically take screenshot")
+if (LIBCREATE)
+
+project(QuickShot VERSION 1.1.0 DESCRIPTION "Programatically take screenshot")
+
+endif()
 
 if (APPLE)
 
@@ -22,13 +27,12 @@ include_directories(${X11_INCLUDE_DIR})
 endif()
 
 
-if (DEMO)
-add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
-endif()
-
+if (LIBCREATE)
 add_library(QuickShot SHARED Scale.cpp Capture.cpp)
-
-set_target_properties(QuickShot PROPERTIES 
+install(TARGETS QuickShot
+    LIBRARY DESTINATION .
+    PUBLIC_HEADER DESTINATION .)
+    set_target_properties(QuickShot PROPERTIES 
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
     PUBLIC_HEADER TypesAndDefs.h
@@ -37,6 +41,8 @@ set_target_properties(QuickShot PROPERTIES
 
 target_include_directories(QuickShot PRIVATE .)
 
-install(TARGETS QuickShot
-    LIBRARY DESTINATION .
-    PUBLIC_HEADER DESTINATION .)
+endif()
+
+if (DEMO)
+add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
+endif()

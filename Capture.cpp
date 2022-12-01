@@ -185,15 +185,18 @@ const PixelData& ScreenCapture::CaptureScreen() {
     return _pixelData;
 }
 
-void ScreenCapture::SaveToFile(std::string filename) const {
-
-    // Add file extension if not present
+void ScreenCapture::SaveToFile(const PixelData& image, const Resolution& resolution, std::string filename) {
+        // Add file extension if not present
     if (filename.find(".bmp") == std::string::npos) {
         filename += ".bmp";
     }
 
-	// Save image to disk
-    const PixelData entireImage = WholeDeal();
-    std::ofstream(filename, std::ios::binary).write(entireImage.data(), entireImage.size());
+    const BmpFileHeader header = ConstructBMPHeader(resolution, 32);
+    std::ofstream outputFile(filename, std::ios::binary);
+    outputFile.write(header.data(), header.size());
+    outputFile.write(image.data(), image.size());
+}
 
+void ScreenCapture::SaveToFile(const std::string& filename) const {
+    SaveToFile(_pixelData, _resolution, filename);
 }

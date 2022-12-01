@@ -125,9 +125,10 @@ static constexpr const BmpFileHeader BaseHeader() {
     return baseHeader;
 }
 
-
-static const inline BmpFileHeader ConstructBMPHeader(Resolution resolution,
+static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolution,
         const Ushort bitsPerPixel) {
+
+    int modifier = 1;
 
     BmpFileHeader header = BaseHeader();
 
@@ -144,12 +145,12 @@ static const inline BmpFileHeader ConstructBMPHeader(Resolution resolution,
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
-    resolution.height = -resolution.height;
+    modifier = -modifier;
 
 #endif
 
     // Encode pixels high
-    EncodeAsByte(ByteSpan(heightIter, HALF_BYTE), resolution.height);
+    EncodeAsByte(ByteSpan(heightIter, HALF_BYTE), modifier * resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 

@@ -1,7 +1,7 @@
-#include <iostream>
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 #include "Capture.h"
 
 const std::string percentageOfScreenCaptured(const Resolution& nativeRes, const ScreenArea& capturedArea) {
@@ -26,30 +26,22 @@ const std::string nameFile(const Resolution& resolution,const std::string& addit
 
 int main(int argc, char** argv) {
 
-	Resolution sourceRes = RES_1440;
 	Resolution targetRes = RES_4K;
+	Resolution sourceRes = RES_1080;
 
-    ScreenCapture screen(sourceRes);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
-	
+	ScreenArea captureArea(RES_1080);
+    ScreenCapture screen(sourceRes, captureArea);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
+
 	auto image = screen.CaptureScreen();
-	screen.SaveToFile("Original");
+	screen.SaveToFile("Original" + nameFile(screen.GetResolution()));
 
-	auto header = ConstructBMPHeader(targetRes, 32);
-
-	Scaler::scaleMethod = ScaleMethod::NearestNeighbor;
+	Scaler::method = Scaler::ScaleMethod::NearestNeighbor;
 	auto scaled = Scaler::Scale(image, sourceRes, targetRes);
+	screen.SaveToFile(scaled, targetRes, "NearestNeighbor" + nameFile(targetRes));
 
-	std::ofstream file("NearestNeighbor.bmp", std::ios::binary);
-	file.write(header.data(), header.size());
-	file.write(scaled.data(), scaled.size());
-	file.close();
-
-	Scaler::scaleMethod = ScaleMethod::Bilinear;
+	Scaler::method = Scaler::ScaleMethod::Bilinear;
 	scaled = Scaler::Scale(image, sourceRes, targetRes);
-
-	file = std::ofstream("Bilinear.bmp", std::ios::binary);
-	file.write(header.data(), header.size());
-	file.write(scaled.data(), scaled.size());
+	screen.SaveToFile(scaled, targetRes, "Bilinear" + nameFile(targetRes));
 
     return 0;
 }
