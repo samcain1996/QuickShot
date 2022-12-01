@@ -1,5 +1,4 @@
 #include "Capture.h"
-#include <functional>
 
 Resolution ScreenCapture::DefaultResolution = ScreenCapture::NativeResolution();
 
@@ -102,7 +101,7 @@ const Resolution& ScreenCapture::GetResolution() const { return _resolution; }
 
 void ScreenCapture::Resize(const Resolution& resolution) {
 
-    _resolution = std::min<Resolution>(NativeResolution(), resolution);
+    _resolution = resolution;
 
     _captureSize = CalculateBMPFileSize(_resolution, _bitsPerPixel);
     _header = ConstructBMPHeader(_resolution, _bitsPerPixel);
@@ -122,7 +121,7 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     GlobalFree(_hDIB);
 
     _hDIB = GlobalAlloc(GHND, _captureSize);
-    (char*)GlobalLock(_hDIB);
+    (Byte*)GlobalLock(_hDIB);
 
 #elif defined(__APPLE__)
 
@@ -130,10 +129,8 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     CGImageRelease(_image);
     CGContextRelease(_context); 
 
-    const Resolution& captureAreaRes = _captureArea;
-
-    _context = CGBitmapContextCreate(_pixelData.data(), captureAreaRes.width, captureAreaRes.height,
-        8, captureAreaRes.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+    _context = CGBitmapContextCreate(_pixelData.data(), _resolution.width, _resolution.height,
+        8, _resolution.width * BMP_COLOR_CHANNELS, _colorspace, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
 
 #endif
 
@@ -157,8 +154,7 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
     // Resize to target resolution
     StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
-        _srcHDC, 0, 0, _captureArea.right - _captureArea.left, 
-        _captureArea.bottom - _captureArea.top, SRCCOPY);
+        _srcHDC, _captureArea.left, _captureArea.top, _captureArea.right, _captureArea.bottom, SRCCOPY);
 
     GetObject(_hScreen, sizeof BITMAP, &_screenBMP);
 
@@ -178,9 +174,8 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__linux__)
 
-    _image = XGetImage(_display, _root, NativeResolution().width - captureAreaRes.width, 
-        NativeResolution().height - captureAreaRes.height, captureAreaRes.width, captureAreaRes.height, 
-        AllPlanes, ZPixmap);   
+    _image = XGetImage(_display, _root, _captureArea.left, _captureArea.top, 
+        _captureArea.right, _captureArea.bottom, AllPlanes, ZPixmap);   
 
     _pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
     _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);

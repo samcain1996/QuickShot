@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cmath>
-#include <algorithm>
 #include "TypesAndDefs.h"
 
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
-using Pixel = std::span<char>;
-using ConstPixel = std::span<const char>;
+
+using Pixel = std::span<Byte>;
+using ConstPixel = std::span<const Byte>;
 
 namespace PixelMap {
 
@@ -17,33 +16,44 @@ namespace PixelMap {
     // Convert 2-D coordinate to 1-D index
     static const Coordinate GetCoordinate(const Resolution& res, const size_t index);
 
-    static const size_t GetDistance(const Coordinate& coord1, const Coordinate& coord2);
-
+    // Convert individual byte to index of pixel map
     static const size_t ToPixelIdx(const size_t absoluteIdx);
+
+    // Convert index of pixel to index of individual byte
     static const size_t ToAbsoluteIdx(const size_t pixelIdx);
 
+    // Returns pixel at index of data
     static const Pixel GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true);
 
+    // Returns a const pixel at index of data
     static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true);
 
 };
 
-// Scale between two images in x and y directions
-using ScaleRatio = std::pair<double, double>;
+// Scale between two images in x and y directions ( new / old )
+struct ScaleRatio {
+    double xRatio = 1;
+    double yRatio = 1;
 
-// Supported scaling methods
-enum class ScaleMethod {
-    NearestNeighbor,
-    Bilinear,
-    Bicubic,
-    Lanczos
+    ScaleRatio(const double x, const double y) : xRatio(x), yRatio(y) {}
+    ScaleRatio(const std::pair<double, double>& ratio) : xRatio(ratio.first), yRatio(ratio.second) {}
+    ScaleRatio(const Resolution& ratio) : xRatio(ratio.width), yRatio(ratio.height) {}
 };
+
 
 class Scaler {
 
 public:
 
-    static inline ScaleMethod scaleMethod = ScaleMethod::NearestNeighbor;
+    // Supported scaling methods
+    enum class ScaleMethod {
+        NearestNeighbor,
+        Bilinear,
+        Bicubic,  // Not implemented
+        Lanczos   // Not implemented
+    };
+
+    static inline ScaleMethod method = ScaleMethod::NearestNeighbor;
 
     static PixelData Scale(const PixelData& sourceImage,
         const Resolution& sourceResolution, const Resolution& destResolution);
@@ -53,22 +63,18 @@ public:
 
 private:
 
-    // Class shouldn't be instantiated
+    // Class shouldn't be instantiated, it is static
     Scaler() = delete;
     ~Scaler() = delete;
 
-    // Get the ratio in the x-direction between dest and source images
-    static const double ScaleRatioX(const Resolution& source, const Resolution& dest);
-
-    // Get the ratio in the y-direction between dest and source images
-    static const double ScaleRatioY(const Resolution& source, const Resolution& dest);
     // Get the ratio in the x and y directions between dest and source images
     static const ScaleRatio GetScaleRatio(const Resolution& source, const Resolution& dest);
 
     /* ----- Scaling Function ----- */
 
-    // Upscale using nearest neighbor technique
+    // Upscale using nearest neighbor ( blockiest results )
     static PixelData NearestNeighbor(const PixelData& source, const Resolution& src, const Resolution& dest);
+    // Upscale by linearly interpolating pixel values ( blurry )
     static PixelData Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest);
 
     // TODO: Implement other scaling methods

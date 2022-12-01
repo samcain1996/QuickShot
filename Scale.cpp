@@ -12,16 +12,15 @@ const Coordinate PixelMap::GetCoordinate(const Resolution& res, const size_t ind
     return { index % res.width , index / res.width };
 }
 
-const size_t PixelMap::GetDistance(const Coordinate& coord1, const Coordinate& coord2) {
-    return sqrt(pow(coord1.first - coord2.first, 2) + pow(coord1.second - coord2.second, 2));
-}
-
 const size_t PixelMap::ToPixelIdx(const size_t absoluteIdx) { return absoluteIdx / BMP_COLOR_CHANNELS; }
+
 const size_t PixelMap::ToAbsoluteIdx(const size_t pixelIdx) { return pixelIdx * BMP_COLOR_CHANNELS; }
+
 const Pixel PixelMap::GetPixel(PixelData& data, const size_t index, const bool absoluteIndex) {
     const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
     return Pixel{data}.subspan(idx, BMP_COLOR_CHANNELS);
 }
+
 const ConstPixel PixelMap::GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex) {
     const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
     return ConstPixel{data}.subspan(idx, BMP_COLOR_CHANNELS);
@@ -38,19 +37,19 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
         return sourceImage;
     }
 
-        // Scale based upon the scale method
-        switch (scaleMethod) {
-        [[likely]] case ScaleMethod::NearestNeighbor:
-            return NearestNeighbor(sourceImage, sourceResolution, destResolution);
-        case ScaleMethod::Bilinear:
-            return Bilinear(sourceImage, sourceResolution, destResolution);
-        case ScaleMethod::Bicubic:
-            return Bicubic(sourceImage, sourceResolution, destResolution);
-        case ScaleMethod::Lanczos:
-            return Lanczos(sourceImage, sourceResolution, destResolution);
-        default:
-            return PixelData();
-        }
+    // Scale based upon the scale method
+    switch (method) {
+    case ScaleMethod::NearestNeighbor:
+        return NearestNeighbor(sourceImage, sourceResolution, destResolution);
+    case ScaleMethod::Bilinear:
+        return Bilinear(sourceImage, sourceResolution, destResolution);
+    case ScaleMethod::Bicubic:
+        return Bicubic(sourceImage, sourceResolution, destResolution);
+    case ScaleMethod::Lanczos:
+        return Lanczos(sourceImage, sourceResolution, destResolution);
+    default:
+        return PixelData();
+    }
 
 }
 
@@ -58,22 +57,13 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
     const Resolution& sourceResolution, const ScaleRatio& scaleRatio) {
 
     return Scaler::Scale(sourceImage, sourceResolution, 
-        Resolution { int(sourceResolution.width * scaleRatio.first), int(sourceResolution.height * scaleRatio.second)});
+        Resolution { int(sourceResolution.width * scaleRatio.xRatio), int(sourceResolution.height * scaleRatio.yRatio)});
 
 }
 
-// Get the ratio in the x-direction between dest and source images
-const double Scaler::ScaleRatioX(const Resolution& source, const Resolution& dest) {
-    return (dest.width) / (double)(source.width);
-}
-
-// Get the ratio in the y-direction between dest and source images
-const double Scaler::ScaleRatioY(const Resolution& source, const Resolution& dest) {
-    return (dest.height) / (double)(source.height);
-}
 // Get the ratio in the x and y directions between dest and source images
 const ScaleRatio Scaler::GetScaleRatio(const Resolution& source, const Resolution& dest) {
-    return std::make_pair(ScaleRatioX(source, dest), ScaleRatioY(source, dest));
+    return { (dest.width / (double)source.width), (dest.height / (double)dest.height) };
 }
 
 // Upscale using nearest neighbor technique
@@ -82,18 +72,18 @@ PixelData Scaler::NearestNeighbor(const PixelData& source, const Resolution& src
     PixelData scaled(CalculateBMPFileSize(dest));
     const auto& [scaleX, scaleY] = GetScaleRatio(src, dest);
 
-    for (size_t byteIdx = 0; byteIdx < scaled.size(); byteIdx += BMP_COLOR_CHANNELS) {
+    for (size_t absIndex = 0; absIndex < scaled.size(); absIndex += BMP_COLOR_CHANNELS) {
 
         // Convert pixel index to x,y coordinates
-        const auto& [destX, destY] = PixelMap::GetCoordinate(dest, byteIdx / BMP_COLOR_CHANNELS);
-		auto scaledPixel = PixelMap::GetPixel(scaled, byteIdx);
+        const auto& [destX, destY] = PixelMap::GetCoordinate(dest, PixelMap::ToPixelIdx(absIndex));
+		Pixel scaledPixel = PixelMap::GetPixel(scaled, absIndex);
 
         // Scale the coordinates
-        const Coordinate mappedCoord = std::make_pair(destX / scaleX, destY / scaleY);
+        const Coordinate mappedCoord = { destX / scaleX, destY / scaleY };
 
         // Convert the coordinates to index
-        const size_t indexToMap = PixelMap::GetPixelIndex(src, mappedCoord) * BMP_COLOR_CHANNELS;
-		auto sourcePixel = PixelMap::GetPixel(source, indexToMap);
+        const size_t indexToMap = PixelMap::GetPixelIndex(src, mappedCoord);
+		ConstPixel sourcePixel = PixelMap::GetPixel(source, indexToMap, false);
 
 		scaledPixel[0] = sourcePixel[0];
 		scaledPixel[1] = sourcePixel[1];
@@ -108,6 +98,7 @@ PixelData Scaler::NearestNeighbor(const PixelData& source, const Resolution& src
 
 PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest) {
 
+    // Init new image and get scale between new and source
     PixelData scaledImg(CalculateBMPFileSize(dest));
     const auto& [scaleX, scaleY] = GetScaleRatio(src, dest);
 
@@ -128,43 +119,32 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
         double y = scaledImgY / scaleY;
 
         // Nearest pixels X-values and their weight in relation to current pixel
-        double x_l = floor(scaledImgX / scaleX);
-        double x_h = std::min((int)ceil(scaledImgX / scaleX), X_MAX_SRC);
+        int x_l = floor(scaledImgX / scaleX);  
+        int x_h = std::min((int)ceil(scaledImgX / scaleX), X_MAX_SRC); 
 
         double xl_weight = 1 - (x - x_l) / X_MAX_SRC;
         double xh_weight = 1 - xl_weight;
 
         // Nearest pixels Y-values and their weight in relation to current pixel
-        double y_l = floor(scaledImgY / scaleY);
-        double y_h = std::min((int)ceil(scaledImgY / scaleY), Y_MAX_SRC);
+        int y_l = floor(scaledImgY / scaleY);
+        int y_h = std::min((int)ceil(scaledImgY / scaleY), Y_MAX_SRC);
 
         double yl_weight = 1 - (y - y_l) / Y_MAX_SRC;
         double yh_weight = 1 - yl_weight;
 
-        // 4 neighboring pixels
-        const auto p_ll = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_l }), false);
-        const auto p_lh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_h }), false);
-        const auto p_hl = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_l }), false);
-        const auto p_hh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_h }), false);
+        // 4 neighboring pixels ( p_xy )
+        const ConstPixel p_ll = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_l }), false);
+        const ConstPixel p_lh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_h }), false);
+        const ConstPixel p_hl = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_l }), false);
+        const ConstPixel p_hh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_h }), false);
 
-        char r = (xl_weight * p_ll[0] + xh_weight * p_hl[0]) * yl_weight +
-              (xl_weight * p_lh[0] + xh_weight * p_hh[0]) * yh_weight;
+        // Create new pixel from neighboring 4 pixels
+        Pixel scaledImgPixel = PixelMap::GetPixel(scaledImg, absIndex);
 
-        char g = (xl_weight * p_ll[1] + xh_weight * p_hl[1]) * yl_weight +
-            (xl_weight * p_lh[1] + xh_weight * p_hh[1]) * yh_weight;
-
-        char b = (xl_weight * p_ll[2] + xh_weight * p_hl[2]) * yl_weight +
-            (xl_weight * p_lh[2] + xh_weight * p_hh[2]) * yh_weight;
-
-        char a = (xl_weight * p_ll[3] + xh_weight * p_hl[3]) * yl_weight +
-            (xl_weight * p_lh[3] + xh_weight * p_hh[3]) * yh_weight;
-
-         auto scaledImgPixel = PixelMap::GetPixel(scaledImg, absIndex);
-
-         scaledImgPixel[0] = r;
-         scaledImgPixel[1] = g;
-         scaledImgPixel[2] = b;
-         scaledImgPixel[3] = a;
+        for (size_t channel = 0; channel < BMP_COLOR_CHANNELS; ++channel) {
+            scaledImgPixel[channel] = (xl_weight * p_ll[channel] + xh_weight * p_hl[channel]) * yl_weight +
+                (xl_weight * p_lh[channel] + xh_weight * p_hh[channel]) * yh_weight;
+        }
 
     }
 
