@@ -29,8 +29,10 @@ int main(int argc, char** argv) {
 	Resolution targetRes = RES_4K;
 	Resolution sourceRes = RES_1080;
 
-	ScreenArea captureArea(RES_1080);
-    ScreenCapture screen(sourceRes, captureArea);  // If no resolution is specified, ScreenCapture::DefaultResolution is used
+	int xOffset = 150, yOffset = 200;
+	ScreenArea captureArea(xOffset, RES_720.width + xOffset,
+		yOffset, RES_720.height + yOffset);
+    ScreenCapture screen(sourceRes, captureArea);
 
 	auto image = screen.CaptureScreen();
 	screen.SaveToFile("Original" + nameFile(screen.GetResolution()));

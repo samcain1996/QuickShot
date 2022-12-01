@@ -175,7 +175,7 @@ const PixelData& ScreenCapture::CaptureScreen() {
 #elif defined(__linux__)
 
     _image = XGetImage(_display, _root, _captureArea.left, _captureArea.top, 
-        _captureArea.right, _captureArea.bottom, AllPlanes, ZPixmap);   
+        captureAreaRes.width, captureAreaRes.height, AllPlanes, ZPixmap);   
 
     _pixelData = PixelData(_image->data, _image->data + CalculateBMPFileSize(captureAreaRes));
     _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);

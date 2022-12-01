@@ -63,7 +63,7 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
 
 // Get the ratio in the x and y directions between dest and source images
 const ScaleRatio Scaler::GetScaleRatio(const Resolution& source, const Resolution& dest) {
-    return { (dest.width / (double)source.width), (dest.height / (double)dest.height) };
+    return { (dest.width / (double)source.width), (dest.height / (double)source.height) };
 }
 
 // Upscale using nearest neighbor technique
