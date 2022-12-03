@@ -39,6 +39,8 @@ ScreenCapture::ScreenCapture(const int width, const int height) {
     _resolution.height = height;
 
     // Capture the entire screen by default	
+    _captureArea.left = 0;
+    _captureArea.right = 0;
     _captureArea.right = NativeResolution().width;
     _captureArea.bottom = NativeResolution().height;
 
@@ -167,10 +169,9 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__APPLE__)
 
-	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(0, 0, _resolution.width, _resolution.height));
-    CGContextDrawImage(_context, CGRectMake(_captureArea.left, - (_captureArea.bottom - _resolution.height),
-        captureAreaRes.width, captureAreaRes.height), _image);
-    _pixelData = Scaler::Scale(_pixelData, captureAreaRes, _resolution);
+	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(_captureArea.left, _captureArea.top, captureAreaRes.width, captureAreaRes.height));
+    CGContextDrawImage(_context, CGRectMake(0, 0,
+        _resolution.width, _resolution.height), _image);
 
 #elif defined(__linux__)
 
