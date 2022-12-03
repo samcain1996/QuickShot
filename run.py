@@ -20,7 +20,7 @@ if len(sys.argv) >= 4:
 
 if cmake:
     if debug:
-        os.system('cmake -DCMAKE_BUILD_TYPE=DEBUG ../')
+        os.system('build/cmake -DCMAKE_BUILD_TYPE=DEBUG ../')
     else:
         os.system('build/cmake ../')
 
