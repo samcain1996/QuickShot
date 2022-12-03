@@ -1,6 +1,1 @@
 1. Implement other scaling methods
-2. Check that capture resolution is within screen size
-    2a. Change to captureResolution + screenRegion instead of captureRes and destRes
-3. Implement scaling within Capture.h (user should never interface with Scale.h)
-4. Improve performance (currently, many uneccesary copies)
-5. Adhere to core guidelines
