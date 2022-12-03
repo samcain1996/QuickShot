@@ -18,8 +18,25 @@ const std::string percentageOfScreenCaptured(const Resolution& nativeRes, const 
     return formatted.str();
 }
 
-const std::string imageDimensions(const Resolution& resolution) {
-	return std::to_string(resolution.width) + "x" + std::to_string(resolution.height);
+const std::string NameImage(const Resolution& resolution, const bool isOriginal = false) {
+
+	std::string imageName;
+
+	switch (Scaler::method) {
+	case Scaler::ScaleMethod::NearestNeighbor:
+		imageName = "NearestNeighbor";
+		break;
+	case Scaler::ScaleMethod::Bilinear:
+		imageName = "Bilinear";
+		break;
+	default:
+		 imageName = "Unknown";
+	}
+
+	if (isOriginal) { imageName = "Original"; }
+
+	imageName += std::to_string(resolution.width) + "x" + std::to_string(resolution.height);
+	return imageName;
 }
 
 int main(int argc, char** argv) {
@@ -29,21 +46,18 @@ int main(int argc, char** argv) {
 
 	int xOffset = 0, yOffset = 0;
 	ScreenArea captureArea(RES_1080, xOffset, yOffset);
-    ScreenCapture screen(sourceRes);
+	ScreenCapture screen(sourceRes, captureArea);
 
 	PixelData image = screen.CaptureScreen();
-	std::string name = "Original" + imageDimensions(screen.GetResolution());
-	screen.SaveToFile(name);
+	screen.SaveToFile(NameImage(screen.GetResolution(), true));
 
 	Scaler::method = Scaler::ScaleMethod::NearestNeighbor;
 	PixelData scaled = Scaler::Scale(image, sourceRes, targetRes);
-	name = "NearestNeighbor" + imageDimensions(targetRes);
-	screen.SaveToFile(scaled, targetRes, name);
+	screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
 
 	Scaler::method = Scaler::ScaleMethod::Bilinear;
 	scaled = Scaler::Scale(image, sourceRes, targetRes);
-	name = "Bilinear" + imageDimensions(targetRes);
-	screen.SaveToFile(scaled, targetRes, "Bilinear" + imageDimensions(targetRes));
+	screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
 
     return 0;
 }

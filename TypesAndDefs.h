@@ -49,6 +49,7 @@ constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode)
 // BMP Constants
 constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
 constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
+constexpr const Ushort BMP_HEADER_BPP_OFFSET = BMP_FILE_HEADER_SIZE + 14;
 constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
 
 // Pixel Constants
@@ -115,6 +116,10 @@ struct Resolution {
     }
     
 };
+
+// Debug resolutions
+constexpr static const Resolution RES_2X2 = { 2, 2 };
+constexpr static const Resolution RES_4X4 = { 4, 4 };
 
 // Low definition
 constexpr static const Resolution RES_144 = { 256, 144 };
@@ -184,31 +189,34 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
         const Ushort bitsPerPixel = 32) {
 
     using HeaderIter = BmpFileHeader::iterator;
-    const int filesizeOffset = 2;
-    const int filesize = CalculateBMPFileSize(resolution, bitsPerPixel);
 
-    int modifier = 1;
+    const int filesize = CalculateBMPFileSize(resolution, bitsPerPixel);
+    const int filesizeOffset = 2;
+    const int widthOffset = BMP_FILE_HEADER_SIZE + sizeof(filesize);
+    const int heightOffset = widthOffset + sizeof(resolution.width);
+
+    int windowsModifier = 1;
 
     BmpFileHeader header = BaseHeader();
 
     HeaderIter filesizeIter = header.begin() + filesizeOffset;
-    HeaderIter widthIter = header.begin() + BMP_FILE_HEADER_SIZE + sizeof(filesize);
-    HeaderIter heightIter = header.begin() + BMP_FILE_HEADER_SIZE + sizeof(filesize) + sizeof(resolution.width);
+    HeaderIter widthIter = header.begin() + widthOffset;
+    HeaderIter heightIter = header.begin() + heightOffset;
 	
     // Encode file size
-    EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), filesize + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
+    EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), filesize + BMP_HEADER_SIZE);
 
     // Encode pixels wide
     EncodeAsByte(ByteSpan(widthIter, HALF_BYTE), resolution.width);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
-    modifier = -modifier;
+    windowsModifier = -windowsModifier;
 
 #endif
 
     // Encode pixels high
-    EncodeAsByte(ByteSpan(heightIter, HALF_BYTE), modifier * resolution.height);
+    EncodeAsByte(ByteSpan(heightIter, HALF_BYTE), windowsModifier * resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
@@ -217,7 +225,7 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 
 #endif
 
-    header[BMP_FILE_HEADER_SIZE + 14] = bitsPerPixel;
+    header[BMP_HEADER_BPP_OFFSET] = bitsPerPixel;
 	
     return header;
 	
