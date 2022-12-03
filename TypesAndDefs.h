@@ -27,8 +27,8 @@
 using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
 
-using Byte = char;
-using ByteSpan = std::span<Byte, 4>;
+using MyByte = char;
+using ByteSpan = std::span<MyByte, 4>;
 
 constexpr const int ONE_BYTE = 8;
 constexpr const int HALF_BYTE = 4;
@@ -51,9 +51,9 @@ constexpr const Ushort NUM_COLOR_CHANNELS = 4;
 constexpr const Ushort BITS_PER_CHANNEL = 8;
 
 // Types
-using BmpFileHeader = std::array<Byte, BMP_HEADER_SIZE>;
+using BmpFileHeader = std::array<MyByte, BMP_HEADER_SIZE>;
 
-using PixelData = std::vector<Byte>;
+using PixelData = std::vector<MyByte>;
 
 /*------------------RESOLUTIONS--------------------*/
 

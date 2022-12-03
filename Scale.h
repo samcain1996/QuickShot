@@ -5,8 +5,8 @@
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
 
-using Pixel = std::span<Byte>;
-using ConstPixel = std::span<const Byte>;
+using Pixel = std::span<MyByte>;
+using ConstPixel = std::span<const MyByte>;
 
 namespace PixelMap {
 

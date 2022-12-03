@@ -121,7 +121,7 @@ void ScreenCapture::Resize(const Resolution& resolution) {
     GlobalFree(_hDIB);
 
     _hDIB = GlobalAlloc(GHND, _captureSize);
-    (Byte*)GlobalLock(_hDIB);
+    (MyByte*)GlobalLock(_hDIB);
 
 #elif defined(__APPLE__)
 
