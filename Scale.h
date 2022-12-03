@@ -11,22 +11,19 @@ using ConstPixel = std::span<const Byte>;
 namespace PixelMap {
 
     // Convert 1-D index to 2-D coordinate
-    static const size_t GetPixelIndex(const Resolution& res, const Coordinate& coord);
+    static const size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord);
 
     // Convert 2-D coordinate to 1-D index
-    static const Coordinate GetCoordinate(const Resolution& res, const size_t index);
+    static const Coordinate IndexToCoordinate(const Resolution& res, const size_t index);
 
-    // Convert individual byte to index of pixel map
-    static const size_t ToPixelIdx(const size_t absoluteIdx);
-
-    // Convert index of pixel to index of individual byte
-    static const size_t ToAbsoluteIdx(const size_t pixelIdx);
+    // Convert between index of pixels and index of individual bytes
+    static const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex = true);
 
     // Returns pixel at index of data
-    static const Pixel GetPixel(PixelData& data, const size_t index, const bool absoluteIndex = true);
+    static const Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
 
     // Returns a const pixel at index of data
-    static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex = true);
+    static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
 
 };
 

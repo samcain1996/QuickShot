@@ -30,8 +30,8 @@ using Uint32 = std::uint32_t;
 using Byte = char;
 using ByteSpan = std::span<Byte, 4>;
 
-constexpr int ONE_BYTE = 8;
-constexpr int HALF_BYTE = 4;
+constexpr const int ONE_BYTE = 8;
+constexpr const int HALF_BYTE = 4;
 
 // Convert base 10 number to base 256
 constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode) {
@@ -47,7 +47,8 @@ constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode)
 constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
 constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
 constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
-constexpr const Ushort BMP_COLOR_CHANNELS = 4;
+constexpr const Ushort NUM_COLOR_CHANNELS = 4;
+constexpr const Ushort BITS_PER_CHANNEL = 8;
 
 // Types
 using BmpFileHeader = std::array<Byte, BMP_HEADER_SIZE>;
@@ -59,6 +60,41 @@ using PixelData = std::vector<Byte>;
 struct Resolution {
     int width = 0;
     int height = 0;
+
+    double AspectRatio() const { return width / (double)height; }
+
+    Resolution operator*(const int factor) const {
+
+        const size_t targetArea = width * height * factor;
+
+        const int newHeight = sqrt(width * height * factor / AspectRatio());
+        const int newWidth = AspectRatio() * newHeight;
+
+        return { newWidth, newHeight };
+    }
+
+    Resolution& operator*=(const int factor) {
+        const Resolution newResolution = *this * factor;
+
+        return *this;
+    }
+
+    Resolution operator/(const int divisor) const {
+
+        const size_t targetArea = width * height / divisor;
+
+        const int newHeight = sqrt(width * height / (divisor * AspectRatio()));
+        const int newWidth = AspectRatio() * newHeight;
+
+        return { newWidth, newHeight };
+    }
+
+    Resolution& operator/=(const int divisor) {
+
+        Resolution newResolution = *this / divisor;
+
+        return *this;
+    }
 
     bool operator==(const Resolution& other) const {
         return width == other.width && height == other.height;
@@ -106,7 +142,7 @@ struct ScreenArea {
 };
 
 static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32) {
-    return ((resolution.width * bitsPerPixel + 31) / 32) * BMP_COLOR_CHANNELS * resolution.height;
+    return ((resolution.width * bitsPerPixel + 31) / 32) * NUM_COLOR_CHANNELS * resolution.height;
 };
 
 
@@ -129,7 +165,7 @@ static constexpr const BmpFileHeader BaseHeader() {
 }
 
 static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolution,
-        const Ushort bitsPerPixel) {
+        const Ushort bitsPerPixel = 32) {
 
     int modifier = 1;
 
@@ -141,7 +177,7 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 	
     // Encode file size
     EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), resolution.width * resolution.height *
-        BMP_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
+        NUM_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
 
     // Encode pixels wide
     EncodeAsByte(ByteSpan(widthIter, HALF_BYTE), resolution.width);

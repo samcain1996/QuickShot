@@ -19,19 +19,17 @@ const std::string percentageOfScreenCaptured(const Resolution& nativeRes, const 
 }
 
 const std::string imageDimensions(const Resolution& resolution) {
-	
 	return std::to_string(resolution.width) + "x" + std::to_string(resolution.height);
-	
 }
 
 int main(int argc, char** argv) {
 
-	Resolution sourceRes = RES_720;
-	Resolution targetRes = ScreenCapture::NativeResolution();
+	Resolution sourceRes = ScreenCapture::NativeResolution();
+	Resolution targetRes = sourceRes / 2;
 
-	int xOffset = 0, yOffset = 0;
-	ScreenArea captureArea(ScreenCapture::NativeResolution(), xOffset, yOffset);
-    ScreenCapture screen(sourceRes, captureArea);
+	int xOffset = 250, yOffset = 100;
+	ScreenArea captureArea(RES_720, xOffset, yOffset);
+    ScreenCapture screen(sourceRes/*, captureArea*/);
 
 	PixelData image = screen.CaptureScreen();
 	std::string name = "Original" + imageDimensions(screen.GetResolution());

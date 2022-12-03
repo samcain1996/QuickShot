@@ -76,6 +76,8 @@ public:
     const PixelData WholeDeal() const;
     const Resolution& GetResolution() const;
 
+    static void SaveToFile(const PixelData& imageAndHeader, std::string filename = "screenshot.bmp");
+    static void SaveToFile(const PixelData& image, const BmpFileHeader& header, std::string filename = "screenshot.bmp");
     static void SaveToFile(const PixelData& image, const Resolution& resolution, std::string filename = "screenshot.bmp");
     void SaveToFile(const std::string& filename = "screenshot.bmp") const;
 };

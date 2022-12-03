@@ -3,27 +3,27 @@
 /* ----- Pixel Map ----- */
 
 // Convert 1-D index to 2-D coordinate
-const size_t PixelMap::GetPixelIndex(const Resolution& res, const Coordinate& coord) {
+const size_t PixelMap::CoordinateToIndex(const Resolution& res, const Coordinate& coord) {
     return coord.second * res.width + coord.first;
 }
 
 // Convert 2-D coordinate to 1-D index
-const Coordinate PixelMap::GetCoordinate(const Resolution& res, const size_t index) {
+const Coordinate PixelMap::IndexToCoordinate(const Resolution& res, const size_t index) {
     return { index % res.width , index / res.width };
 }
 
-const size_t PixelMap::ToPixelIdx(const size_t absoluteIdx) { return absoluteIdx / BMP_COLOR_CHANNELS; }
-
-const size_t PixelMap::ToAbsoluteIdx(const size_t pixelIdx) { return pixelIdx * BMP_COLOR_CHANNELS; }
-
-const Pixel PixelMap::GetPixel(PixelData& data, const size_t index, const bool absoluteIndex) {
-    const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
-    return Pixel{data}.subspan(idx, BMP_COLOR_CHANNELS);
+const Pixel PixelMap::GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex) {
+    const size_t idx = isAbsoluteIndex ? index : PixelMap::ConvertIndex(index);
+    return Pixel{data}.subspan(idx, NUM_COLOR_CHANNELS);
 }
 
-const ConstPixel PixelMap::GetPixel(const PixelData& data, const size_t index, const bool absoluteIndex) {
-    const size_t idx = absoluteIndex ? index : PixelMap::ToAbsoluteIdx(index);
-    return ConstPixel{data}.subspan(idx, BMP_COLOR_CHANNELS);
+const ConstPixel PixelMap::GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex) {
+    const size_t idx = isAbsoluteIndex ? index : PixelMap::ConvertIndex(index);
+    return ConstPixel{data}.subspan(idx, NUM_COLOR_CHANNELS);
+}
+
+const size_t PixelMap::ConvertIndex(const size_t index, const bool toAbsoluteIndex) {
+    return toAbsoluteIndex ? index * NUM_COLOR_CHANNELS : index / NUM_COLOR_CHANNELS;
 }
 /* --------------------- */
 
@@ -72,17 +72,17 @@ PixelData Scaler::NearestNeighbor(const PixelData& source, const Resolution& src
     PixelData scaled(CalculateBMPFileSize(dest));
     const auto& [scaleX, scaleY] = GetScaleRatio(src, dest);
 
-    for (size_t absIndex = 0; absIndex < scaled.size(); absIndex += BMP_COLOR_CHANNELS) {
+    for (size_t absIndex = 0; absIndex < scaled.size(); absIndex += NUM_COLOR_CHANNELS) {
 
         // Convert pixel index to x,y coordinates
-        const auto& [destX, destY] = PixelMap::GetCoordinate(dest, PixelMap::ToPixelIdx(absIndex));
+        const auto& [destX, destY] = PixelMap::IndexToCoordinate(dest, PixelMap::ConvertIndex(absIndex, false));
 		Pixel scaledPixel = PixelMap::GetPixel(scaled, absIndex);
 
         // Scale the coordinates
         const Coordinate mappedCoord = { destX / scaleX, destY / scaleY };
 
         // Convert the coordinates to index
-        const size_t indexToMap = PixelMap::GetPixelIndex(src, mappedCoord);
+        const size_t indexToMap = PixelMap::CoordinateToIndex(src, mappedCoord);
 		ConstPixel sourcePixel = PixelMap::GetPixel(source, indexToMap, false);
 
 		scaledPixel[0] = sourcePixel[0];
@@ -105,14 +105,14 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
     const int X_MAX_SRC = src.width - 1;
     const int Y_MAX_SRC = src.height - 1;
     
-    for (size_t absIndex = 0; absIndex < scaledImg.size(); absIndex += BMP_COLOR_CHANNELS) {
+    for (size_t absIndex = 0; absIndex < scaledImg.size(); absIndex += NUM_COLOR_CHANNELS) {
 
         // Each pixel is multiple bytes long. Each element in PixelMap is 
         // 1 byte so the 'pixelIndex' needs to be converted to the 'true' index
-        const size_t pixelIndex = PixelMap::ToPixelIdx(absIndex);
+        const size_t pixelIndex = PixelMap::ConvertIndex(absIndex, false);
 
         // Get the pixel's X and Y coordinates
-        const auto& [scaledImgX, scaledImgY] = PixelMap::GetCoordinate(dest, pixelIndex);
+        const auto& [scaledImgX, scaledImgY] = PixelMap::IndexToCoordinate(dest, pixelIndex);
 
         // Location of current pixel if it was in source image
         double x = scaledImgX / scaleX;
@@ -133,15 +133,15 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
         double yh_weight = 1 - yl_weight;
 
         // 4 neighboring pixels ( p_xy )
-        const ConstPixel p_ll = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_l }), false);
-        const ConstPixel p_lh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_l, y_h }), false);
-        const ConstPixel p_hl = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_l }), false);
-        const ConstPixel p_hh = PixelMap::GetPixel(source, PixelMap::GetPixelIndex(src, { x_h, y_h }), false);
+        const ConstPixel p_ll = PixelMap::GetPixel(source, PixelMap::CoordinateToIndex(src, { x_l, y_l }), false);
+        const ConstPixel p_lh = PixelMap::GetPixel(source, PixelMap::CoordinateToIndex(src, { x_l, y_h }), false);
+        const ConstPixel p_hl = PixelMap::GetPixel(source, PixelMap::CoordinateToIndex(src, { x_h, y_l }), false);
+        const ConstPixel p_hh = PixelMap::GetPixel(source, PixelMap::CoordinateToIndex(src, { x_h, y_h }), false);
 
         // Create new pixel from neighboring 4 pixels
         Pixel scaledImgPixel = PixelMap::GetPixel(scaledImg, absIndex);
 
-        for (size_t channel = 0; channel < BMP_COLOR_CHANNELS; ++channel) {
+        for (size_t channel = 0; channel < NUM_COLOR_CHANNELS; ++channel) {
             scaledImgPixel[channel] = (xl_weight * p_ll[channel] + xh_weight * p_hl[channel]) * yl_weight +
                 (xl_weight * p_lh[channel] + xh_weight * p_hh[channel]) * yh_weight;
         }
