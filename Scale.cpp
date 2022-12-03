@@ -22,6 +22,12 @@ const ConstPixel PixelMap::GetPixel(const PixelData& data, const size_t index, c
     return ConstPixel{data}.subspan(idx, NUM_COLOR_CHANNELS);
 }
 
+void PixelMap::AssignPixel(Pixel& assignee, const ConstPixel& other) {
+    for (size_t channel = 0; channel < NUM_COLOR_CHANNELS; ++channel) {
+        assignee[channel] = other[channel];
+    }
+}
+
 const size_t PixelMap::ConvertIndex(const size_t index, const bool toAbsoluteIndex) {
     return toAbsoluteIndex ? index * NUM_COLOR_CHANNELS : index / NUM_COLOR_CHANNELS;
 }
@@ -56,9 +62,12 @@ PixelData Scaler::Scale(const PixelData& sourceImage,
 PixelData Scaler::Scale(const PixelData& sourceImage,
     const Resolution& sourceResolution, const ScaleRatio& scaleRatio) {
 
-    return Scaler::Scale(sourceImage, sourceResolution, 
-        Resolution { int(sourceResolution.width * scaleRatio.xRatio), int(sourceResolution.height * scaleRatio.yRatio)});
+    return Scale(sourceImage, sourceResolution, 
+        Resolution { sourceResolution.width * scaleRatio.xRatio, sourceResolution.height * scaleRatio.yRatio });
+}
 
+PixelData Scaler::Scale(const PixelData& sourceImage, const Resolution& sourceResolution, const Uint32 scalingFactor) {
+    return Scale(sourceImage, sourceResolution, ScaleRatio(scalingFactor, scalingFactor));
 }
 
 // Get the ratio in the x and y directions between dest and source images
@@ -85,10 +94,7 @@ PixelData Scaler::NearestNeighbor(const PixelData& source, const Resolution& src
         const size_t indexToMap = PixelMap::CoordinateToIndex(src, mappedCoord);
 		ConstPixel sourcePixel = PixelMap::GetPixel(source, indexToMap, false);
 
-		scaledPixel[0] = sourcePixel[0];
-		scaledPixel[1] = sourcePixel[1];
-		scaledPixel[2] = sourcePixel[2];
-		scaledPixel[3] = sourcePixel[3];
+        PixelMap::AssignPixel(scaledPixel, sourcePixel);
     }
 
     // Convert to byte pointer

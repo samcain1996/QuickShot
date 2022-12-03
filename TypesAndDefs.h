@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <algorithm>
+#include <functional>
 
 #if defined(_WIN32)
 
@@ -47,12 +48,13 @@ constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode)
 constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
 constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
 constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
+
+// Pixel Constants
 constexpr const Ushort NUM_COLOR_CHANNELS = 4;
 constexpr const Ushort BITS_PER_CHANNEL = 8;
 
 // Types
 using BmpFileHeader = std::array<MyByte, BMP_HEADER_SIZE>;
-
 using PixelData = std::vector<MyByte>;
 
 /*------------------RESOLUTIONS--------------------*/
@@ -60,6 +62,9 @@ using PixelData = std::vector<MyByte>;
 struct Resolution {
     int width = 0;
     int height = 0;
+
+    constexpr Resolution(const int x, const int y) : width(x), height(y) {}
+    constexpr Resolution(const double x, const double y) : width(x), height(y) {}
 
     double AspectRatio() const { return width / (double)height; }
 
@@ -138,6 +143,14 @@ struct ScreenArea {
     ScreenArea(const Resolution& res, const int xOffset, const int yOffset) :
         left(xOffset), right(xOffset + res.width), top(yOffset), bottom(yOffset + res.height) {}
 
+    // Total area of screen being captured
+    int Area() const { return ( right - left ) * ( bottom - top ); }
+
+    // One ScreenArea is smaller than another if its Area is less
+    bool operator<(const ScreenArea& other) const {
+        return Area() < other.Area();
+    }
+
     operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 
@@ -164,20 +177,24 @@ static constexpr const BmpFileHeader BaseHeader() {
     return baseHeader;
 }
 
+// Create a simple BITMAPFILEHEADER and BITMAPINFOHEADER as 1, 54-byte array
 static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolution,
         const Ushort bitsPerPixel = 32) {
+
+    using HeaderIter = BmpFileHeader::iterator;
+    const int filesizeOffset = 2;
+    const int filesize = CalculateBMPFileSize(resolution, bitsPerPixel);
 
     int modifier = 1;
 
     BmpFileHeader header = BaseHeader();
 
-	BmpFileHeader::iterator filesizeIter = header.begin() + 2;
-    BmpFileHeader::iterator widthIter = header.begin() + BMP_FILE_HEADER_SIZE + 4;
-    BmpFileHeader::iterator heightIter = header.begin() + BMP_FILE_HEADER_SIZE + 8;
+    HeaderIter filesizeIter = header.begin() + filesizeOffset;
+    HeaderIter widthIter = header.begin() + BMP_FILE_HEADER_SIZE + sizeof(filesize);
+    HeaderIter heightIter = header.begin() + BMP_FILE_HEADER_SIZE + sizeof(filesize) + sizeof(resolution.width);
 	
     // Encode file size
-    EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), resolution.width * resolution.height *
-        NUM_COLOR_CHANNELS + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
+    EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), filesize + BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE);
 
     // Encode pixels wide
     EncodeAsByte(ByteSpan(widthIter, HALF_BYTE), resolution.width);
@@ -194,7 +211,7 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
     std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
-        [](char& b) { if ( b == '\0' ) { b = (char)255; } });
+        [](MyByte& b) { if ( b == '\0' ) { b = (MyByte)UCHAR_MAX; } });
 
 #endif
 

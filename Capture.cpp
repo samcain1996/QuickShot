@@ -39,8 +39,6 @@ ScreenCapture::ScreenCapture(const int width, const int height) {
     _resolution.height = height;
 
     // Capture the entire screen by default	
-    _captureArea.left = 0;
-    _captureArea.right = 0;
     _captureArea.right = NativeResolution().width;
     _captureArea.bottom = NativeResolution().height;
 
@@ -64,10 +62,9 @@ ScreenCapture::ScreenCapture(const int width, const int height) {
 }
 
 
-ScreenCapture::ScreenCapture(const Resolution& res, const ScreenArea& areaToCapture) : ScreenCapture(res.width, res.height) {
-
-	_captureArea = areaToCapture;
-
+ScreenCapture::ScreenCapture(const Resolution& res, const ScreenArea& areaToCapture) : 
+    ScreenCapture(res.width, res.height) {
+    _captureArea = std::min(areaToCapture, static_cast<ScreenArea>(_resolution));
 }
 
 ScreenCapture::~ScreenCapture() {
@@ -138,7 +135,7 @@ void ScreenCapture::Resize(const Resolution& resolution) {
 
 }
 
-void ScreenCapture::Crop(const ScreenArea& area) { _captureArea = area; }
+void ScreenCapture::Crop(const ScreenArea& area) { _captureArea = std::min(area, static_cast<ScreenArea>(_resolution)); }
 
 const PixelData ScreenCapture::WholeDeal() const {
 
@@ -158,7 +155,7 @@ const PixelData& ScreenCapture::CaptureScreen() {
     StretchBlt(_memHDC, 0, 0, _resolution.width, _resolution.height,
         _srcHDC, _captureArea.left, _captureArea.top, _captureArea.right, _captureArea.bottom, SRCCOPY);
 
-    GetObject(_hScreen, sizeof BITMAP, &_screenBMP);
+    GetObject(_hScreen, sizeof(_screenBMP), &_screenBMP);
 
     // Store screen data in _pixelData
     // Should be legal because BITMAPINFO has no padding, all its data members are aligned.
@@ -169,7 +166,8 @@ const PixelData& ScreenCapture::CaptureScreen() {
 
 #elif defined(__APPLE__)
 
-	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(_captureArea.left, _captureArea.top, captureAreaRes.width, captureAreaRes.height));
+	_image = CGDisplayCreateImageForRect(CGMainDisplayID(), 
+        CGRectMake(_captureArea.left, _captureArea.top, captureAreaRes.width, captureAreaRes.height));
     CGContextDrawImage(_context, CGRectMake(0, 0,
         _resolution.width, _resolution.height), _image);
 
