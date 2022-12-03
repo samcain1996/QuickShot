@@ -29,6 +29,8 @@ using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
 
 using MyByte = char;
+constexpr const MyByte MAX_MYBYTE_VAL = 255;
+
 using ByteSpan = std::span<MyByte, 4>;
 
 constexpr const int ONE_BYTE = 8;
@@ -211,7 +213,7 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
     std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
-        [](MyByte& b) { if ( b == '\0' ) { b = (MyByte)UCHAR_MAX; } });
+        [](MyByte& b) { if ( b == '\0' ) { b = (MyByte)MAX_MYBYTE_VAL; } });
 
 #endif
 

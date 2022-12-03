@@ -24,12 +24,12 @@ const std::string imageDimensions(const Resolution& resolution) {
 
 int main(int argc, char** argv) {
 
-	Resolution sourceRes = ScreenCapture::NativeResolution();
-	Resolution targetRes = sourceRes / 2;
+	Resolution sourceRes = RES_1440;
+	Resolution targetRes = RES_4K;
 
-	int xOffset = 250, yOffset = 100;
-	ScreenArea captureArea(RES_720, xOffset, yOffset);
-    ScreenCapture screen(sourceRes/*, captureArea*/);
+	int xOffset = 0, yOffset = 0;
+	ScreenArea captureArea(RES_1080, xOffset, yOffset);
+    ScreenCapture screen(sourceRes);
 
 	PixelData image = screen.CaptureScreen();
 	std::string name = "Original" + imageDimensions(screen.GetResolution());
