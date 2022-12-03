@@ -2,32 +2,28 @@
 
 #include "TypesAndDefs.h"
 
-// X and Y positions of a pixel
-using Coordinate = std::pair<Ushort, Ushort>;
-
 using Pixel = std::span<MyByte>;
 using ConstPixel = std::span<const MyByte>;
 
-namespace PixelMap {
+// X and Y positions of a pixel
+using Coordinate = std::pair<Ushort, Ushort>;
 
-    // Convert 1-D index to 2-D coordinate
-    static const size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord);
+/*----------Pixel Functions----------*/
 
-    // Convert 2-D coordinate to 1-D index
-    static const Coordinate IndexToCoordinate(const Resolution& res, const size_t index);
+// Convert 1-D index to 2-D coordinate
+static const size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord);
+// Convert 2-D coordinate to 1-D index
+static const Coordinate IndexToCoordinate(const Resolution& res, const size_t index);
+// Convert between index of pixels and index of individual bytes
+static const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex = true);
+// Returns pixel at index of data
+static const Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
+// Returns a const pixel at index of data
+static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
+static void AssignPixel(Pixel& assignee, const ConstPixel& other);
 
-    // Convert between index of pixels and index of individual bytes
-    static const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex = true);
+/*-----------------------------------*/
 
-    // Returns pixel at index of data
-    static const Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
-
-    // Returns a const pixel at index of data
-    static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
-
-    static void AssignPixel(Pixel& assignee, const ConstPixel& other);
-
-};
 
 // Scale between two images in x and y directions ( new / old )
 struct ScaleRatio {

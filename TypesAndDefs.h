@@ -29,7 +29,7 @@ using Ushort = std::uint16_t;
 using Uint32 = std::uint32_t;
 
 using MyByte = char;
-constexpr const MyByte MAX_MYBYTE_VAL = 255;
+constexpr const MyByte MAX_MYBYTE_VAL = static_cast<MyByte>(255);
 
 using ByteSpan = std::span<MyByte, 4>;
 

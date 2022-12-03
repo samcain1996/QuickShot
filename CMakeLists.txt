@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 3.12)
+
 set(CMAKE_CXX_STANDARD 20)
 set(DEMO ON CACHE BOOL "Build demo")
 set(LIBCREATE OFF CACHE BOOL "Create library")
 
+# Build Demo
 if (DEMO)
 project(QuickShotDemo)
 endif()
 
+# Build Library
 if (LIBCREATE)
-
-project(QuickShot VERSION 1.1.0 DESCRIPTION "Programatically take screenshot")
-
+project(QuickShot VERSION 1.1.0 DESCRIPTION "Programatically take and scale a screenshot")
 endif()
 
+# Find system library to take screenshot
 if (APPLE)
 
 find_library(APPLICATIONSERVICES_LIBRARY ApplicationServices REQUIRED)
@@ -27,7 +29,12 @@ include_directories(${X11_INCLUDE_DIR})
 endif()
 
 
+if (DEMO)
+add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
+endif()
+
 if (LIBCREATE)
+
 add_library(QuickShot SHARED Scale.cpp Capture.cpp)
 install(TARGETS QuickShot
     LIBRARY DESTINATION .
@@ -41,8 +48,4 @@ install(TARGETS QuickShot
 
 target_include_directories(QuickShot PRIVATE .)
 
-endif()
-
-if (DEMO)
-add_executable(QuickShotDemo Scale.cpp Capture.cpp Demo.cpp)
 endif()
