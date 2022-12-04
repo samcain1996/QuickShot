@@ -123,15 +123,15 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
         double y = scaledImgY / scaleY;
 
         // Nearest pixels X-values and their weight in relation to current pixel
-        int x_l = floor(scaledImgX / scaleX);  
-        int x_h = std::min((int)ceil(scaledImgX / scaleX), X_MAX_SRC); 
+        int x_l = floor(x);  
+        int x_h = std::min((int)ceil(x), X_MAX_SRC); 
 
         double xl_weight = 1 - (x - x_l) / X_MAX_SRC;
         double xh_weight = 1 - xl_weight;
 
         // Nearest pixels Y-values and their weight in relation to current pixel
-        int y_l = floor(scaledImgY / scaleY);
-        int y_h = std::min((int)ceil(scaledImgY / scaleY), Y_MAX_SRC);
+        int y_l = floor(y);
+        int y_h = std::min((int)ceil(y), Y_MAX_SRC);
 
         double yl_weight = 1 - (y - y_l) / Y_MAX_SRC;
         double yh_weight = 1 - yl_weight;
@@ -158,7 +158,46 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
 
 // TODO: Implement other scaling methods
 PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest) {
-    return PixelData();
+    // Init new image and get scale between new and source
+    PixelData scaledImg(CalculateBMPFileSize(dest));
+    const auto& [scaleX, scaleY] = GetScaleRatio(src, dest);
+
+    const int X_MAX_SRC = src.width - 1;
+    const int Y_MAX_SRC = src.height - 1;
+
+    for (size_t absIndex = 0; absIndex < scaledImg.size(); absIndex += NUM_COLOR_CHANNELS) {
+        
+        // Each pixel is multiple bytes long. Each element in PixelMap is 
+       // 1 byte so the 'pixelIndex' needs to be converted to the 'true' index
+        const size_t pixelIndex = ConvertIndex(absIndex, false);
+
+        // Get the pixel's X and Y coordinates
+        const auto& [scaledImgX, scaledImgY] = IndexToCoordinate(dest, pixelIndex);
+
+        // Location of current pixel if it was in source image
+        double x = scaledImgX / scaleX;
+        double y = scaledImgY / scaleY;
+
+        // Nearest pixels X-values and their weight in relation to current pixel
+        int x_l = floor(x);
+        int x_h = std::min((int)ceil(x), X_MAX_SRC);
+
+        // Nearest pixels Y-values and their weight in relation to current pixel
+        int y_l = floor(y);
+        int y_h = std::min((int)ceil(y), Y_MAX_SRC);
+
+        double yl_weight = 1 - (y - y_l) / Y_MAX_SRC;
+        double yh_weight = 1 - yl_weight;
+
+        // 4 neighboring pixels ( p_xy )
+        const ConstPixel p_ll = GetPixel(source, CoordinateToIndex(src, { x_l, y_l }), false);
+        const ConstPixel p_lh = GetPixel(source, CoordinateToIndex(src, { x_l, y_h }), false);
+        const ConstPixel p_hl = GetPixel(source, CoordinateToIndex(src, { x_h, y_l }), false);
+        const ConstPixel p_hh = GetPixel(source, CoordinateToIndex(src, { x_h, y_h }), false);
+    
+    }
+
+    return scaledImg;
 }
 PixelData Scaler::Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest) {
     return PixelData();

@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 	Resolution targetRes = RES_4K;
 
 	int xOffset = 0, yOffset = 0;
-	ScreenArea captureArea(RES_1080, xOffset, yOffset);
+	ScreenArea captureArea(ScreenCapture::NativeResolution(), xOffset, yOffset);
 	ScreenCapture screen(sourceRes, captureArea);
 
 	PixelData image = screen.CaptureScreen();

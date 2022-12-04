@@ -33,9 +33,6 @@ constexpr const MyByte MAX_MYBYTE_VAL = static_cast<MyByte>(255);
 
 using ByteSpan = std::span<MyByte, 4>;
 
-constexpr const int ONE_BYTE = 8;
-constexpr const int HALF_BYTE = 4;
-
 // Convert base 10 number to base 256
 constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode) {
 
@@ -46,11 +43,20 @@ constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode)
 
 }
 
+
 // BMP Constants
 constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
 constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
 constexpr const Ushort BMP_HEADER_BPP_OFFSET = BMP_FILE_HEADER_SIZE + 14;
 constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
+
+constexpr const int PixelDataOffset = 10;
+constexpr const int ColorPlanesOffset = BMP_FILE_HEADER_SIZE + 12;
+constexpr const int NumColorPlanes = 1;
+
+constexpr const int FilesizeOffset = 2;
+constexpr const int WidthOffset = BMP_FILE_HEADER_SIZE + sizeof(int);
+constexpr const int HeightOffset = WidthOffset + sizeof(int);
 
 // Pixel Constants
 constexpr const Ushort NUM_COLOR_CHANNELS = 4;
@@ -108,6 +114,7 @@ struct Resolution {
         return width == other.width && height == other.height;
     }
 
+    // Change to compare area
     bool operator<(const Resolution& other) const {
         return width < other.width || height < other.height;
     }
@@ -117,7 +124,7 @@ struct Resolution {
     
 };
 
-// Debug resolutions
+// Test resolutions
 constexpr static const Resolution RES_2X2 = { 2, 2 };
 constexpr static const Resolution RES_4X4 = { 4, 4 };
 
@@ -158,7 +165,7 @@ struct ScreenArea {
         return Area() < other.Area();
     }
 
-    operator Resolution() { return { (right - left), (bottom - top) }; }
+    explicit operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 
 static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32) {
@@ -174,12 +181,14 @@ static constexpr const BmpFileHeader BaseHeader() {
     baseHeader[0] = 0x42;
     baseHeader[1] = 0x4D;
 
-    baseHeader[10] = 0x36;  // Offset to start of pixel data
+    // Offset of pixel data
+    baseHeader[PixelDataOffset] = BMP_HEADER_SIZE;
 
-    // Start of info related to pixel data
-    baseHeader[BMP_FILE_HEADER_SIZE] = 0x28;
+    // Size of entire header
+    baseHeader[BMP_FILE_HEADER_SIZE] = BMP_INFO_HEADER_SIZE;
 
-    baseHeader[BMP_FILE_HEADER_SIZE+12] = 1;
+    // Number of color planes (must be 1)
+    baseHeader[ColorPlanesOffset] = NumColorPlanes;
 
     return baseHeader;
 }
@@ -190,24 +199,21 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 
     using HeaderIter = BmpFileHeader::iterator;
 
-    const int filesize = CalculateBMPFileSize(resolution, bitsPerPixel);
-    const int filesizeOffset = 2;
-    const int widthOffset = BMP_FILE_HEADER_SIZE + sizeof(filesize);
-    const int heightOffset = widthOffset + sizeof(resolution.width);
+    const int filesize = BMP_HEADER_SIZE + CalculateBMPFileSize(resolution, bitsPerPixel);
 
     int windowsModifier = 1;
 
     BmpFileHeader header = BaseHeader();
 
-    HeaderIter filesizeIter = header.begin() + filesizeOffset;
-    HeaderIter widthIter = header.begin() + widthOffset;
-    HeaderIter heightIter = header.begin() + heightOffset;
+    HeaderIter filesizeIter = header.begin() + FilesizeOffset;
+    HeaderIter widthIter = header.begin() + WidthOffset;
+    HeaderIter heightIter = header.begin() + HeightOffset;
 	
     // Encode file size
-    EncodeAsByte(ByteSpan(filesizeIter, HALF_BYTE), filesize + BMP_HEADER_SIZE);
+    EncodeAsByte(ByteSpan(filesizeIter, sizeof(filesize)), filesize);
 
     // Encode pixels wide
-    EncodeAsByte(ByteSpan(widthIter, HALF_BYTE), resolution.width);
+    EncodeAsByte(ByteSpan(widthIter, sizeof(resolution.width)), resolution.width);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
@@ -216,11 +222,11 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 #endif
 
     // Encode pixels high
-    EncodeAsByte(ByteSpan(heightIter, HALF_BYTE), windowsModifier * resolution.height);
+    EncodeAsByte(ByteSpan(heightIter, sizeof(resolution.height)), windowsModifier * resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
-    std::for_each( (header.begin() + BMP_FILE_HEADER_SIZE + 8), (header.begin() + BMP_FILE_HEADER_SIZE + 12), 
+    std::for_each( heightIter, heightIter + sizeof(resolution.height),
         [](MyByte& b) { if ( b == '\0' ) { b = (MyByte)MAX_MYBYTE_VAL; } });
 
 #endif

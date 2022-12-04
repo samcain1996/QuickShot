@@ -61,7 +61,6 @@ ScreenCapture::ScreenCapture(const int width, const int height) {
 
 }
 
-
 ScreenCapture::ScreenCapture(const Resolution& res, const ScreenArea& areaToCapture) : 
     ScreenCapture(res.width, res.height) {
     _captureArea = std::min(areaToCapture, static_cast<ScreenArea>(ScreenCapture::NativeResolution()));
@@ -147,7 +146,7 @@ const PixelData ScreenCapture::WholeDeal() const {
 
 const PixelData& ScreenCapture::CaptureScreen() {
 
-    const Resolution& captureAreaRes = _captureArea;
+    const Resolution& captureAreaRes = static_cast<Resolution>(_captureArea);
 
 #if defined(_WIN32)
 

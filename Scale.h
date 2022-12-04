@@ -5,6 +5,8 @@
 using Pixel = std::span<MyByte>;
 using ConstPixel = std::span<const MyByte>;
 
+using PixelNeighbors = std::array<ConstPixel, 4>;
+
 // X and Y positions of a pixel
 using Coordinate = std::pair<Ushort, Ushort>;
 
@@ -20,6 +22,9 @@ static const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex 
 static const Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
 // Returns a const pixel at index of data
 static const ConstPixel GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
+
+static const PixelNeighbors GetNeighbors(const PixelData& data, const Coordinate& coords, const Resolution& res);
+
 static void AssignPixel(Pixel& assignee, const ConstPixel& other);
 
 /*-----------------------------------*/
