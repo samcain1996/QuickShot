@@ -27,7 +27,7 @@ Resolution ScreenCapture::NativeResolution(const bool reinit) {
 	
     static Resolution NATIVE_RESOLUTION = retrieveRes();
 
-    if (reinit) { retrieveRes(); }
+    if (reinit) { NATIVE_RESOLUTION = retrieveRes(); }
 
     return NATIVE_RESOLUTION;
 	
