@@ -1,3 +1,4 @@
+#include <chrono>
 #include <string>
 #include <iomanip>
 #include <sstream>
@@ -29,6 +30,9 @@ const std::string NameImage(const Resolution& resolution, const bool isOriginal 
 	case Scaler::ScaleMethod::Bilinear:
 		imageName = "Bilinear";
 		break;
+	case Scaler::ScaleMethod::Bicubic:
+		imageName = "Bicubic";
+		break;
 	default:
 		 imageName = "Unknown";
 	}
@@ -41,23 +45,32 @@ const std::string NameImage(const Resolution& resolution, const bool isOriginal 
 
 int main(int argc, char** argv) {
 
-	Resolution sourceRes = RES_1440;
-	Resolution targetRes = RES_4K;
+	Resolution sourceRes = RES_720;
+	Resolution targetRes = RES_1080;
 
 	int xOffset = 0, yOffset = 0;
 	ScreenArea captureArea(ScreenCapture::NativeResolution(), xOffset, yOffset);
-	ScreenCapture screen(sourceRes, captureArea);
+	ScreenCapture screen(sourceRes);
 
 	PixelData image = screen.CaptureScreen();
 	screen.SaveToFile(NameImage(screen.GetResolution(), true));
 
-	Scaler::method = Scaler::ScaleMethod::NearestNeighbor;
-	PixelData scaled = Scaler::Scale(image, sourceRes, targetRes);
+	//Scaler::method = Scaler::ScaleMethod::NearestNeighbor;
+	//PixelData scaled = Scaler::Scale(image, sourceRes, targetRes);
+	//screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
+
+	//Scaler::method = Scaler::ScaleMethod::Bilinear;
+	//scaled = Scaler::Scale(image, sourceRes, targetRes);
+	//screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
+	Scaler::method = Scaler::ScaleMethod::Bicubic;
+	auto begin = std::chrono::high_resolution_clock::now();
+	auto scaled = Scaler::Scale(image, sourceRes, targetRes);
+	auto end = std::chrono::high_resolution_clock::now();
+
+	std::cout << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << std::endl;
+
 	screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
 
-	Scaler::method = Scaler::ScaleMethod::Bilinear;
-	scaled = Scaler::Scale(image, sourceRes, targetRes);
-	screen.SaveToFile(scaled, targetRes, NameImage(targetRes));
 
     return 0;
 }

@@ -4,6 +4,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(DEMO ON CACHE BOOL "Build demo")
 set(LIBCREATE OFF CACHE BOOL "Create library")
 
+set(EIGEN_DIR C:\\Users\\scain\\source\\repos\\eigen)
+
 # Build Demo
 if (DEMO)
 project(QuickShotDemo)
@@ -13,6 +15,8 @@ endif()
 if (LIBCREATE)
 project(QuickShot VERSION 1.1.0 DESCRIPTION "Programatically take and scale a screenshot")
 endif()
+
+include_directories(${EIGEN_DIR})
 
 # Find system library to take screenshot
 if (APPLE)
