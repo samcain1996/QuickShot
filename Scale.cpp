@@ -27,12 +27,6 @@ void AssignPixel(Pixel& assignee, const ConstPixel& other) {
     }
 }
 
-//void SubtractPixel(Pixel& subFrom, const ConstPixel& sub) {
-//    for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
-//        subFrom[channel] -= sub[channel];
-//    }
-//}
-
 void AssignPixel(Thing& assignee, const ConstPixel& other) {
     for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
         assignee[channel] = other[channel];
@@ -303,7 +297,7 @@ PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const 
 }
 
 
-// TODO: Implement other scaling methods
+// TODO: Implement Lanczos scaling
 PixelData Scaler::Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest) {
     return PixelData();
 }

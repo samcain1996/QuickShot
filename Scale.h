@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 #include "TypesAndDefs.h"
 
 // X and Y positions of a pixel
@@ -22,7 +22,7 @@ enum class Neighbor {
     BottomLeft = 2, BottomRight = 3
 };
 
-constexpr const int BYTES_PER_PIXEL = NUM_COLOR_CHANNELS;
+constexpr const Ushort BYTES_PER_PIXEL = NUM_COLOR_CHANNELS;
 
 using PixelAndPos = std::pair<ConstPixel, Coordinate>;
 using Neighbors = std::array<PixelAndPos, BYTES_PER_PIXEL>;
@@ -44,7 +44,6 @@ static ConstPixel GetPixel(const PixelData& data, const size_t index, const bool
 // Assign 1 pixel's values to another
 static void AssignPixel(Pixel& assignee, const ConstPixel& other);
 
-static void SubtractPixel(Pixel& subFrom, const ConstPixel& sub);
 static Thing SubtractPixel(const ConstPixel& subFrom, const ConstPixel& sub);
 
 
@@ -106,8 +105,9 @@ private:
     // Upscale by linearly interpolating pixel values ( blurry )
     static PixelData Bilinear(const PixelData& source, const Resolution& src, const Resolution& dest);
 
-    // TODO: Implement other scaling methods
     static PixelData Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest);
+    
+    // TODO: Implement Lanczos scaling
     static PixelData Lanczos(const PixelData& source, const Resolution& src, const Resolution& dest);
 
 

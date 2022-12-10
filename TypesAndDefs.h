@@ -9,6 +9,8 @@
 
 #if defined(_WIN32)
 
+static constexpr const short OS_MODIFIER = -1;
+
 #define NOMINMAX
 
 #include <Windows.h>
@@ -16,9 +18,13 @@
 
 #elif defined(__APPLE__)
 
+static constexpr const short OS_MODIFIER = 1;
+
 #include <ApplicationServices/ApplicationServices.h>
 
 #elif defined(__linux__)
+
+static constexpr const short OS_MODIFIER = 1;
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -31,7 +37,28 @@ using Uint32 = std::uint32_t;
 using MyByte = char;
 constexpr const MyByte MAX_MYBYTE_VAL = static_cast<MyByte>(255);
 
-using ByteSpan = std::span<MyByte, 4>;
+// BMP Constants
+constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
+constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
+constexpr const Ushort BMP_HEADER_BPP_OFFSET = BMP_FILE_HEADER_SIZE + 14;
+constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
+
+constexpr const Ushort PIXEL_DATA_OFFSET = 10;
+constexpr const Ushort COLOR_PLANES_OFFSET = BMP_FILE_HEADER_SIZE + 12;
+constexpr const Ushort NUM_COLOR_PLANES = 1;
+
+constexpr const Ushort FILESIZE_OFFSET = 2;
+constexpr const Ushort WIDTH_OFFSET = BMP_FILE_HEADER_SIZE + sizeof(int);
+constexpr const Ushort HEIGHT_OFFSET = WIDTH_OFFSET + sizeof(int);
+
+// Pixel Constants
+constexpr const Ushort NUM_COLOR_CHANNELS = 4;
+constexpr const Ushort BITS_PER_CHANNEL = 8;
+
+// Types
+using BmpFileHeader = std::array<MyByte, BMP_HEADER_SIZE>;
+using ByteSpan = std::span<MyByte, NUM_COLOR_CHANNELS>;
+using PixelData = std::vector<MyByte>;
 
 // Convert base 10 number to base 256
 constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode) {
@@ -42,29 +69,6 @@ constexpr void EncodeAsByte(ByteSpan encodedNumber, const Uint32 numberToEncode)
     encodedNumber[0] = (numberToEncode) & 0xFF;
 
 }
-
-
-// BMP Constants
-constexpr const Ushort BMP_FILE_HEADER_SIZE = 14;
-constexpr const Ushort BMP_INFO_HEADER_SIZE = 40;
-constexpr const Ushort BMP_HEADER_BPP_OFFSET = BMP_FILE_HEADER_SIZE + 14;
-constexpr const Ushort BMP_HEADER_SIZE = BMP_FILE_HEADER_SIZE + BMP_INFO_HEADER_SIZE;
-
-constexpr const int PixelDataOffset = 10;
-constexpr const int ColorPlanesOffset = BMP_FILE_HEADER_SIZE + 12;
-constexpr const int NumColorPlanes = 1;
-
-constexpr const int FilesizeOffset = 2;
-constexpr const int WidthOffset = BMP_FILE_HEADER_SIZE + sizeof(int);
-constexpr const int HeightOffset = WidthOffset + sizeof(int);
-
-// Pixel Constants
-constexpr const Ushort NUM_COLOR_CHANNELS = 4;
-constexpr const Ushort BITS_PER_CHANNEL = 8;
-
-// Types
-using BmpFileHeader = std::array<MyByte, BMP_HEADER_SIZE>;
-using PixelData = std::vector<MyByte>;
 
 /*------------------RESOLUTIONS--------------------*/
 
@@ -110,11 +114,12 @@ struct Resolution {
         return *this;
     }
 
+    // Comparison operators
     bool operator==(const Resolution& other) const {
         return width == other.width && height == other.height;
     }
 
-    // Change to compare area
+    // Change to compare area ??
     bool operator<(const Resolution& other) const {
         return width < other.width || height < other.height;
     }
@@ -150,11 +155,11 @@ struct ScreenArea {
     int top = 0;
     int bottom = 0;
 
-    ScreenArea() = default;
-    ScreenArea(const int left, const int right, const int top, const int bottom) :
+    constexpr ScreenArea() = default;
+    constexpr ScreenArea(const int left, const int right, const int top, const int bottom) :
         left(left), right(right), top(top), bottom(bottom) {}
-	ScreenArea(const Resolution& res) : right(res.width), bottom(res.height) {}
-    ScreenArea(const Resolution& res, const int xOffset, const int yOffset) :
+	constexpr ScreenArea(const Resolution& res) : right(res.width), bottom(res.height) {}
+    constexpr ScreenArea(const Resolution& res, const int xOffset, const int yOffset) :
         left(xOffset), right(xOffset + res.width), top(yOffset), bottom(yOffset + res.height) {}
 
     // Total area of screen being captured
@@ -168,6 +173,7 @@ struct ScreenArea {
     explicit operator Resolution() { return { (right - left), (bottom - top) }; }
 };
 
+// Size of a bitmap stored on disk
 static const inline Uint32 CalculateBMPFileSize(const Resolution& resolution, const Ushort bitsPerPixel = 32) {
     return ((resolution.width * bitsPerPixel + 31) / 32) * NUM_COLOR_CHANNELS * resolution.height;
 };
@@ -182,13 +188,13 @@ static constexpr const BmpFileHeader BaseHeader() {
     baseHeader[1] = 0x4D;
 
     // Offset of pixel data
-    baseHeader[PixelDataOffset] = BMP_HEADER_SIZE;
+    baseHeader[PIXEL_DATA_OFFSET] = BMP_HEADER_SIZE;
 
     // Size of entire header
     baseHeader[BMP_FILE_HEADER_SIZE] = BMP_INFO_HEADER_SIZE;
 
     // Number of color planes (must be 1)
-    baseHeader[ColorPlanesOffset] = NumColorPlanes;
+    baseHeader[COLOR_PLANES_OFFSET] = NUM_COLOR_PLANES;
 
     return baseHeader;
 }
@@ -201,13 +207,11 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
 
     const int filesize = BMP_HEADER_SIZE + CalculateBMPFileSize(resolution, bitsPerPixel);
 
-    int windowsModifier = 1;
-
     BmpFileHeader header = BaseHeader();
 
-    HeaderIter filesizeIter = header.begin() + FilesizeOffset;
-    HeaderIter widthIter = header.begin() + WidthOffset;
-    HeaderIter heightIter = header.begin() + HeightOffset;
+    HeaderIter filesizeIter = header.begin() + FILESIZE_OFFSET;
+    HeaderIter widthIter = header.begin() + WIDTH_OFFSET;
+    HeaderIter heightIter = header.begin() + HEIGHT_OFFSET;
 	
     // Encode file size
     EncodeAsByte(ByteSpan(filesizeIter, sizeof(filesize)), filesize);
@@ -215,14 +219,8 @@ static const inline BmpFileHeader ConstructBMPHeader(const Resolution& resolutio
     // Encode pixels wide
     EncodeAsByte(ByteSpan(widthIter, sizeof(resolution.width)), resolution.width);
 
-#if !defined(_WIN32)  // Window bitmaps are stored upside down
-
-    windowsModifier = -windowsModifier;
-
-#endif
-
     // Encode pixels high
-    EncodeAsByte(ByteSpan(heightIter, sizeof(resolution.height)), windowsModifier * resolution.height);
+    EncodeAsByte(ByteSpan(heightIter, sizeof(resolution.height)), OS_MODIFIER * resolution.height);
 
 #if !defined(_WIN32)  // Window bitmaps are stored upside down
 
