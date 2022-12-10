@@ -3,39 +3,31 @@
 
 /* ----- Pixel Map ----- */
 
-const size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord) {
+size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord) {
     return coord.second * res.width + coord.first;
 }
 
-const Coordinate IndexToCoordinate(const Resolution& res, const size_t index) {
+Coordinate IndexToCoordinate(const Resolution& res, const size_t index) {
     return { index % res.width , index / res.width };
+}
+
+size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex) {
+    return toAbsoluteIndex ? index * BYTES_PER_PIXEL : index / BYTES_PER_PIXEL;
 }
 
 Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex) {
     const size_t idx = isAbsoluteIndex ? index : ConvertIndex(index);
-    return Pixel{data}.subspan(idx, BYTES_PER_PIXEL);
+    return Pixel{ data }.subspan(idx, BYTES_PER_PIXEL);
 }
 
 ConstPixel GetPixel(const PixelData& data, const size_t index, const bool isAbsoluteIndex) {
     const size_t idx = isAbsoluteIndex ? index : ConvertIndex(index);
-    return ConstPixel{data}.subspan(idx, BYTES_PER_PIXEL);
+    return ConstPixel{ data }.subspan(idx, BYTES_PER_PIXEL);
 }
 
 void AssignPixel(Pixel& assignee, const ConstPixel& other) {
     for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
         assignee[channel] = other[channel];
-    }
-}
-
-void AssignPixel(Thing& assignee, const ConstPixel& other) {
-    for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
-        assignee[channel] = other[channel];
-    }
-}
-
-void SubtractPixel(Thing& subFrom, const ConstPixel& sub) {
-    for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
-        subFrom[channel] -= sub[channel];
     }
 }
 
@@ -47,10 +39,36 @@ Thing SubtractPixel(const ConstPixel& subFrom, const ConstPixel& sub) {
     return t;
 }
 
-const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex) {
-    return toAbsoluteIndex ? index * BYTES_PER_PIXEL : index / BYTES_PER_PIXEL;
-}
+Neighbors FindDerivatives(const bool xDir, const Resolution& res, const PixelData& data, const Neighbors& neighbors) {
 
+    static const Thing EmptyPixel = { 0, 0, 0, 0 };
+
+    Neighbors derivatives {};
+
+    int index = 0;
+
+    std::for_each(neighbors.begin(), neighbors.end(), [&](const auto& pixelAndPos) {
+
+        const auto& [pixelX, pixelY] = pixelAndPos.second;
+        const int X_MAX = res.width - 1;
+        const int Y_MAX = res.height - 1;
+
+        const int MAX = xDir ? X_MAX : Y_MAX;
+        const int axis = xDir ? pixelX : pixelY;
+
+        const int xChange = xDir ? 1 : 0;
+        const int yChange = xDir ? 0 : 1;
+
+        const ConstPixel nextPixel = (axis >= MAX) ? EmptyPixel : GetPixel(data, CoordinateToIndex(res, { pixelX + xChange, pixelY + yChange }));
+        const ConstPixel prevPixel = (axis <= 0)   ? EmptyPixel : GetPixel(data, CoordinateToIndex(res, { pixelX - xChange, pixelY - yChange }));
+
+        derivatives[index++] = { SubtractPixel(nextPixel, prevPixel), pixelAndPos.second };
+    
+    });
+    
+    return derivatives;
+
+}
 
 /* --------------------- */
 
@@ -190,6 +208,9 @@ PixelData Scaler::Bilinear(const PixelData& source, const Resolution& src, const
 PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const Resolution& dest) {
     
     using enum Neighbor;
+    using Derivatives = Neighbors;
+    using MatrixD = Matrix<double>;
+    using Coefficients = std::array<MatrixD, BYTES_PER_PIXEL>;
 
     // Init new image and get scale between new and source
     PixelData scaled(CalculateBMPFileSize(dest));
@@ -198,21 +219,19 @@ PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const 
     const int X_MAX_SRC = src.width - 1;
     const int Y_MAX_SRC = src.height - 1;
 
-    static const Matrix4d multMat1 {
+    static const MatrixD multMat1 {
         { 1, 0, 0, 0 },
         { 0, 0, 1, 0 },
         { -3, 3, -2, -1 },
         { 2, -2, 1, 1 }
     };
 
-    static const Matrix4d multMat2 {
+    static const MatrixD multMat2 {
         { 1, 0, -3, 2 },
         { 0, 0, 3, -2 },
         { 0, 1, -2, 1 },
         { 0, 0, -1, 1 }
     };
-
-    static const Thing EmptyPixel = { 0, 0, 0, 0 };
     
     for (size_t absIndex = 0; absIndex < scaled.size(); absIndex += BYTES_PER_PIXEL) {
 
@@ -222,50 +241,15 @@ PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const 
         const double x = scaledX / destX;
         const double y = scaledY / destY;
 
-        // 4 neighboring pixels ( p_xy )
         Neighbors neighbors = GetNeighbors(x, y, source, src);
-        std::array < PixelAndPos, BYTES_PER_PIXEL > xDerivs, yDerivs, xyDerivs;
-        int ix = 0, iy = 0, ixy = 0;
 
         // Calculate derivatives
-        std::for_each(neighbors.begin(), neighbors.end(), [X_MAX_SRC, &source, &src, &xDerivs, &ix](const auto& pixelAndPos) {
+        Derivatives xDerivs = FindDerivatives(true, src, source, neighbors);
+        Derivatives yDerivs = FindDerivatives(false, src, source, neighbors);
+        Derivatives xyDerivs = FindDerivatives(false, src, source, xDerivs);
 
-            const auto& [pixelX, pixelY] = pixelAndPos.second;
-            
-            const ConstPixel nextPixel = (pixelX >= X_MAX_SRC) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, { pixelX + 1, pixelY }));
-            const ConstPixel prevPixel = (pixelX <= 0) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, { pixelX - 1, pixelY }));
-
-            xDerivs[ix++] = { SubtractPixel(nextPixel, prevPixel), pixelAndPos.second};
-        });
-        
-        std::for_each(neighbors.begin(), neighbors.end(), [Y_MAX_SRC, &source, &src, &yDerivs, &iy](const auto& pixelAndPos) {
-
-            const auto& [pixelX, pixelY] = pixelAndPos.second;
-
-            const ConstPixel nextPixel = (pixelY >= Y_MAX_SRC) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, { pixelX, pixelY + 1 }));
-            const ConstPixel prevPixel = (pixelY <= 0) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, {pixelX, pixelY - 1}));
-
-            yDerivs[iy++] = { SubtractPixel(nextPixel, prevPixel), pixelAndPos.second };
-        });
-
-        std::for_each(xDerivs.begin(), xDerivs.end(), [Y_MAX_SRC, &source, &src, &yDerivs, &xyDerivs, &ixy](const auto& pixelAndPos) {
-
-            const Coordinate& pos = pixelAndPos.second;
-            // Find eq yDeriv
-            bool found = false;
-            for (const auto& res : yDerivs) { if (res.second.first == pos.first && res.second.second == pos.second) { found = true; break; } }
-            if (found) {
-                const ConstPixel nextPixel = (pos.second >= Y_MAX_SRC) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, { pos.first, pos.second + 1 }));
-                const ConstPixel prevPixel = (pos.second <= 0) ? EmptyPixel : GetPixel(source, CoordinateToIndex(src, { pos.first, pos.second - 1 }));
-
-                xyDerivs[ixy++] = { SubtractPixel(nextPixel, prevPixel), pixelAndPos.second};
-            }
-
-        });
-
-
-        const std::function<Matrix4d(const int)> functionMatrix = [&neighbors, &xDerivs, &yDerivs, &xyDerivs](const int index) {
-            return Matrix4d {
+        const MatrixFunc functionMatrix = [&](const int index) {
+            return MatrixD {
                 { (double)neighbors[(int)TopLeft].first[index],  (double)neighbors[(int)BottomLeft].first[index],  (double)yDerivs[(int)TopLeft].first[index],    (double)yDerivs[(int)BottomLeft].first[index]},
                 { (double)neighbors[(int)TopRight].first[index], (double)neighbors[(int)BottomRight].first[index], (double)yDerivs[(int)TopRight].first[index],   (double)yDerivs[(int)BottomRight].first[index]},
                 { (double)xDerivs[(int)TopLeft].first[index],    (double)xDerivs[(int)BottomLeft].first[index],    (double)xyDerivs[(int)TopLeft].first[index],   (double)xyDerivs[(int)BottomLeft].first[index]},
@@ -273,15 +257,15 @@ PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const 
             };
         };
 
-        std::array<Matrix4d, BYTES_PER_PIXEL> coefficients;
+        Coefficients coefficients;
         for (size_t channel = 0; channel < BYTES_PER_PIXEL; ++channel) {
             coefficients[channel] = multMat1 * functionMatrix(channel) * multMat2;
         }
 
         const double xNormal = scaledX / (dest.width - 1);
         const double yNormal = scaledY / (dest.height - 1);
-        const Matrix<double, 1, 4> xVec{ 1, xNormal, pow(xNormal, 2), pow(xNormal, 3) };
-        const Matrix<double, 4, 1> yVec{ 1, yNormal, pow(yNormal, 2), pow(yNormal, 3) };
+        const RowMatrix<double> xVec{ 1, xNormal, pow(xNormal, 2), pow(xNormal, 3) };
+        const ColMatrix<double> yVec{ 1, yNormal, pow(yNormal, 2), pow(yNormal, 3) };
 
         Pixel scaledPixel = GetPixel(scaled, absIndex);
 
@@ -290,8 +274,6 @@ PixelData Scaler::Bicubic(const PixelData& source, const Resolution& src, const 
         }
 
     }
-
-
 
     return scaled;
 }

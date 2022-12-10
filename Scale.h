@@ -14,27 +14,37 @@ using Thing = std::array<MyByte, 4>;
 using PixelList = std::vector<MyByte>;
 using ConstPixelList = std::vector<ConstPixel>;
 
-using Eigen::Matrix4d;
-using Eigen::Matrix;
+constexpr const Ushort BYTES_PER_PIXEL = NUM_COLOR_CHANNELS;
+
+template <typename T>
+using Matrix = Eigen::Matrix<T, BYTES_PER_PIXEL, BYTES_PER_PIXEL>;
+
+template <typename T>
+using RowMatrix = Eigen::Matrix<T, 1, BYTES_PER_PIXEL>;
+
+template <typename T>
+using ColMatrix = Eigen::Matrix<T, BYTES_PER_PIXEL, 1>;
+
+using MatrixFunc = std::function<Matrix<double>(const int)>;
 
 enum class Neighbor {
     TopLeft = 0, TopRight = 1,
     BottomLeft = 2, BottomRight = 3
 };
 
-constexpr const Ushort BYTES_PER_PIXEL = NUM_COLOR_CHANNELS;
-
 using PixelAndPos = std::pair<ConstPixel, Coordinate>;
 using Neighbors = std::array<PixelAndPos, BYTES_PER_PIXEL>;
+using Coefficients = std::array<Matrix<double>, BYTES_PER_PIXEL>;
+
 /*----------Pixel Functions----------*/
 
 // Convert 1-D index to 2-D coordinate
-static const size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord);
+static size_t CoordinateToIndex(const Resolution& res, const Coordinate& coord);
 // Convert 2-D coordinate to 1-D index
-static const Coordinate IndexToCoordinate(const Resolution& res, const size_t index);
+static Coordinate IndexToCoordinate(const Resolution& res, const size_t index);
 
 // Convert between index of pixels and index of individual bytes
-static const size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex = true);
+static size_t ConvertIndex(const size_t index, const bool toAbsoluteIndex = true);
 
 // Returns pixel at index of data
 static Pixel GetPixel(PixelData& data, const size_t index, const bool isAbsoluteIndex = true);
@@ -46,6 +56,7 @@ static void AssignPixel(Pixel& assignee, const ConstPixel& other);
 
 static Thing SubtractPixel(const ConstPixel& subFrom, const ConstPixel& sub);
 
+static Neighbors FindDerivatives(const bool xDir, const Resolution& res, const PixelData& data, const Neighbors& neighbors);
 
 /*-----------------------------------*/
 
